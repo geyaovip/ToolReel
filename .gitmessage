@@ -1,0 +1,11 @@
+# <type>: <short summary>
+#
+# Common types:
+# feat: new user-facing capability
+# fix: bug fix
+# docs: documentation-only change
+# chore: dependency, tooling, or housekeeping
+# refactor: internal code change without behavior change
+#
+# Keep the first line under 72 characters.
+

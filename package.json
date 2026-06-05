@@ -5,11 +5,18 @@
   "type": "module",
   "description": "AI tool recommendation short-video automation pipeline",
   "scripts": {
+    "postinstall": "node --experimental-strip-types scripts/install-git-hooks.ts",
     "generate": "node --experimental-strip-types src/cli/generate.ts",
-    "check": "node --experimental-strip-types --check src/cli/generate.ts"
+    "check": "node --experimental-strip-types --check src/cli/generate.ts",
+    "commit:message": "node --experimental-strip-types scripts/commit-message.ts"
   },
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@remotion/bundler": "^4.0.471",
+    "@remotion/renderer": "^4.0.471",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "^4.0.471"
   },
   "engines": {
     "node": ">=22.6.0",

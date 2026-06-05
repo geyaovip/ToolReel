@@ -86,6 +86,10 @@ Remotion 适合结构化动画和信息卡片：
 - 数据图表
 - 结尾 CTA
 
+Remotion 渲染必须通过真实 Remotion composition 输出，不要长期停留在 FFmpeg 文字占位。MVP 至少应覆盖 `HOOK`、`SELLING_POINT`、`CTA` 三类结构化 Scene。
+
+Remotion renderer 需要可用的本地 Chrome 和本地端口。若在受限沙箱中运行，需要为生成命令授予本地端口权限；不要因此退回到永久占位渲染。
+
 默认使用 Remotion 的 Scene：
 
 - `HOOK`
@@ -129,6 +133,7 @@ HyperFrames 适合网站展示和网页转视频：
 - 最终 MP4 必须使用 `+faststart`，提升 QuickTime 和短视频平台播放器兼容性。
 - 合成后至少抽取第 0 帧检查；必要时使用 `blackdetect` 检测开头 1 秒。
 - 如果直接 copy concat 导致播放器首屏黑屏，应对 `final.mp4` 做一次兼容性重编码。
+- 每次生成必须输出 `validation.json` 和 `first-frame.png`，用于记录媒体规格、起始时间、开头黑帧检查和首帧预览。
 
 分段输出示例：
 

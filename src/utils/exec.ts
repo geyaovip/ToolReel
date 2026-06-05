@@ -13,3 +13,27 @@ export function runCommand(command: string, args: string[]): Promise<void> {
   });
 }
 
+export function runCommandCapture(
+  command: string,
+  args: string[],
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, (error, stdout, stderr) => {
+      const exitCode =
+        typeof error === "object" && error && "code" in error && typeof error.code === "number"
+          ? error.code
+          : 0;
+
+      if (error && exitCode === 0) {
+        reject(error);
+        return;
+      }
+
+      resolve({
+        stdout,
+        stderr,
+        exitCode,
+      });
+    });
+  });
+}

@@ -1,0 +1,56 @@
+#!/bin/sh
+set -eu
+
+message_file="$1"
+
+has_message() {
+  grep -v '^[[:space:]]*#' "$message_file" | grep -q '[^[:space:]]'
+}
+
+if has_message; then
+  exit 0
+fi
+
+changes="$(git diff --cached --name-status || true)"
+
+if [ -z "$changes" ]; then
+  changes="$(git diff --name-status || true)"
+fi
+
+if [ -z "$changes" ]; then
+  printf '%s\n' 'chore: no local changes' > "$message_file"
+  exit 0
+fi
+
+paths="$(printf '%s\n' "$changes" | awk '{print $NF}')"
+
+type="fix"
+scope="toolreel"
+summary="update MVP pipeline"
+
+if printf '%s\n' "$paths" | grep -q '^src/renderers/remotion/'; then
+  type="feat"
+  scope="remotion"
+  summary="add real Remotion scene rendering"
+elif printf '%s\n' "$paths" | grep -q '^src/quality/'; then
+  type="feat"
+  scope="quality"
+  summary="add output quality validation"
+elif printf '%s\n' "$paths" | grep -q '^docs/\|^README.md$'; then
+  type="docs"
+  scope="docs"
+  summary="update project documentation"
+fi
+
+if printf '%s\n' "$paths" | grep -q '^package.json$\|^pnpm-lock.yaml$\|^pnpm-workspace.yaml$'; then
+  if printf '%s\n' "$paths" | grep -q '^src/'; then
+    type="feat"
+  else
+    type="chore"
+    scope="deps"
+    summary="update project dependencies"
+  fi
+fi
+
+printf '%s(%s): %s\n' "$type" "$scope" "$summary" > "$message_file"
+

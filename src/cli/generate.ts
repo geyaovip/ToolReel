@@ -52,10 +52,15 @@ async function main(): Promise<void> {
   console.log("");
   console.log("最终视频：");
   console.log(result.finalVideo);
+  if (result.validation) {
+    console.log("");
+    console.log("输出校验：");
+    console.log(result.validation.passed ? "通过" : "未通过");
+    console.log(`首帧预览：${result.validation.firstFramePath}`);
+  }
 }
 
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 });
-

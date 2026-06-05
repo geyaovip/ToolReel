@@ -29,7 +29,7 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 9. 生成 mock `voice.mp3` 或占位音频。
 10. 自动规划 scenes。
 11. 自动选择每个 scene 的 renderer。
-12. Remotion 能渲染至少 3 类 Scene：`HOOK`、`SELLING_POINT`、`CTA`。
+12. Remotion 能通过真实 composition 渲染至少 3 类 Scene：`HOOK`、`SELLING_POINT`、`CTA`。
 13. HyperFrames 模块先预留 `WEBSITE_DEMO`。
 14. 最终用 FFmpeg 合并片段。
 15. 输出 `final.mp4`。
@@ -111,7 +111,8 @@ MVP 完成后，用户应能做到：
 2. 运行 `pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"`。
 3. 在 `outputs/YYYY-MM-DD-cursor/` 看到完整中间产物。
 4. 在同一目录看到 `final.mp4`。
-5. 打开 `final.mp4` 后能看见竖屏短视频，且至少包含开场、卖点、官网展示占位、字幕、配音占位和 CTA。
+5. 在同一目录看到 `validation.json` 和 `first-frame.png`。
+6. 打开 `final.mp4` 后能看见竖屏短视频，且至少包含开场、卖点、官网展示占位、字幕、配音占位和 CTA。
 
 ## 后续替换顺序
 
@@ -124,4 +125,3 @@ MVP 跑通后再按以下顺序增强：
 5. HyperFrames 从占位模块升级为真实官网展示渲染。
 6. Remotion 视觉细节升级。
 7. 增加更多 videoType 和 Scene 模板。
-

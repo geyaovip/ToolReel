@@ -85,5 +85,28 @@ export type PipelineResult = {
   finalVideo: string;
   scenes: PlannedScene[];
   renderMode: "Remotion" | "HyperFrames" | "Hybrid";
+  validation?: OutputValidation;
 };
 
+export type OutputValidationCheck = {
+  name: string;
+  passed: boolean;
+  actual?: string | number | boolean;
+  expected?: string | number | boolean;
+};
+
+export type OutputValidation = {
+  videoPath: string;
+  firstFramePath: string;
+  inspectedAt: string;
+  passed: boolean;
+  metadata: {
+    durationSeconds?: number;
+    startSeconds?: number;
+    width?: number;
+    height?: number;
+    fps?: number;
+    audioSampleRate?: number;
+  };
+  checks: OutputValidationCheck[];
+};

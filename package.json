@@ -1,0 +1,18 @@
+{
+  "name": "toolreel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI tool recommendation short-video automation pipeline",
+  "scripts": {
+    "generate": "node --experimental-strip-types src/cli/generate.ts",
+    "check": "node --experimental-strip-types --check src/cli/generate.ts"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+  },
+  "engines": {
+    "node": ">=22.6.0",
+    "pnpm": ">=9.0.0"
+  }
+}

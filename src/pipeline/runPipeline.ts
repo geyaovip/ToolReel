@@ -1,0 +1,78 @@
+import { join } from "node:path";
+import { collectAssets } from "../assets/collectAssets.ts";
+import { generateCover } from "../cover/generateCover.ts";
+import { mergeScenes } from "../merge/mergeScenes.ts";
+import { researchTool } from "../research/researchTool.ts";
+import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
+import { renderRemotionScene } from "../renderers/remotion/renderRemotionScene.ts";
+import { selectRenderer } from "../router/selectRenderer.ts";
+import { planScenes } from "../scenes/planScenes.ts";
+import { generateScript } from "../script/generateScript.ts";
+import { generateCaptions } from "../subtitles/generateCaptions.ts";
+import { generateVoice } from "../tts/generateVoice.ts";
+import type { GenerateInput, PipelineResult, PlannedScene, VideoType } from "../types.ts";
+import { ensureDir, writeJson } from "../utils/file.ts";
+import { slugify } from "../utils/slug.ts";
+import { todayId } from "../utils/time.ts";
+
+type RunPipelineArgs = {
+  name: string;
+  url: string;
+  type: VideoType;
+};
+
+export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult> {
+  const outputDir = join("outputs", `${todayId()}-${slugify(args.name)}`);
+  const scenesDir = join(outputDir, "scenes");
+  await ensureDir(scenesDir);
+
+  const input: GenerateInput = {
+    name: args.name,
+    url: args.url,
+    type: args.type,
+    createdAt: new Date().toISOString(),
+    outputDir,
+  };
+  await writeJson(join(outputDir, "input.json"), input);
+
+  const research = await researchTool(input);
+  const script = await generateScript(input, research);
+  const assets = await collectAssets(input);
+  const captions = await generateCaptions(script);
+  const voicePath = await generateVoice(script, join(outputDir, "voice.mp3"));
+  let scenes = planScenes(script).map((scene) => ({
+    ...scene,
+    renderer: selectRenderer(scene.type),
+  })) satisfies PlannedScene[];
+
+  await writeJson(join(outputDir, "research.json"), research);
+  await writeJson(join(outputDir, "script.json"), script);
+  await writeJson(join(outputDir, "assets.json"), assets);
+  await writeJson(join(outputDir, "captions.json"), captions);
+  await writeJson(join(outputDir, "scenes.json"), scenes);
+
+  const renderedScenes: PlannedScene[] = [];
+  for (const scene of scenes) {
+    const outputPath =
+      scene.renderer === "HyperFrames"
+        ? await renderHyperFrameScene(scene, script, assets, scenesDir)
+        : await renderRemotionScene(scene, script, assets, scenesDir);
+    renderedScenes.push({ ...scene, outputPath });
+  }
+  scenes = renderedScenes;
+  await writeJson(join(outputDir, "scenes.json"), scenes);
+
+  await generateCover(script, assets, join(outputDir, "cover.png"));
+  const finalVideo = await mergeScenes(scenes, voicePath, join(outputDir, "final.mp4"));
+
+  const rendererSet = new Set(scenes.map((scene) => scene.renderer));
+  const renderMode = rendererSet.size > 1 ? "Hybrid" : scenes[0]?.renderer ?? "Remotion";
+
+  return {
+    outputDir,
+    finalVideo,
+    scenes,
+    renderMode,
+  };
+}
+

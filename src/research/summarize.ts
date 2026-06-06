@@ -229,5 +229,11 @@ function cleanSentence(text: string, maxChars: number): string {
   if (cleaned.length <= maxChars) {
     return cleaned;
   }
-  return `${cleaned.slice(0, maxChars - 1)}…`;
+
+  const sentence = cleaned.split(/(?<=[。.!！?？])\s*/).find((part) => part.length <= maxChars);
+  if (sentence) {
+    return sentence;
+  }
+
+  return cleaned.slice(0, maxChars);
 }

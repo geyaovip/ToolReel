@@ -3,7 +3,7 @@ import { AUDIO_SAMPLE_RATE, FONT_FILE, FPS, VIDEO_HEIGHT, VIDEO_WIDTH } from "..
 import type { AssetData, PlannedScene, ScriptData } from "../../types.ts";
 import { ensureDir } from "../../utils/file.ts";
 import { runFfmpeg } from "../../utils/ffmpeg.ts";
-import { chunkText, escapeDrawText } from "../../utils/text.ts";
+import { chunkText, displayLines, escapeDrawText } from "../../utils/text.ts";
 
 type RenderSceneVideoArgs = {
   scene: PlannedScene;
@@ -36,21 +36,22 @@ function filterForScene(scene: PlannedScene, script: ScriptData, assets: AssetDa
   const bg = theme === "hyperframes" ? "0x101820" : "0x09111f";
   const accent = theme === "hyperframes" ? "0x00d4ff" : "0x8df5c5";
   const captionLines = chunkText(scene.narration, 12);
-  const bulletLines = scene.bullets.slice(0, 3);
+  const hasWebsiteScreenshot = hasUsableAsset(assets.websiteScreenshot);
+  const bulletLines = scene.bullets
+    .filter((bullet) => hasWebsiteScreenshot || !bullet.includes("真实官网截图"))
+    .map((bullet) => displayLines(bullet, 18, 2))
+    .filter((lines) => lines.length)
+    .slice(0, 3);
+  const detailText =
+    scene.type === "WEBSITE_DEMO"
+      ? assets.homepage?.title || script.coreSellingPoint
+      : script.coreSellingPoint;
   const filters = [
     `color=c=${bg}:s=${VIDEO_WIDTH}x${VIDEO_HEIGHT}:d=${scene.duration}:r=${FPS}`,
     "format=yuv420p",
     `drawbox=x=70:y=90:w=940:h=8:color=${accent}@0.95:t=fill`,
     `drawbox=x=86:y=250:w=908:h=610:color=white@0.08:t=fill`,
     `drawbox=x=118:y=310:w=844:h=470:color=black@0.32:t=fill`,
-    drawText({
-      text: scene.title,
-      x: "86",
-      y: "174",
-      size: scene.title.length > 14 ? 56 : 70,
-      color: "white",
-      box: true,
-    }),
     drawText({
       text: script.toolName,
       x: "118",
@@ -59,7 +60,7 @@ function filterForScene(scene: PlannedScene, script: ScriptData, assets: AssetDa
       color: "white",
     }),
     drawText({
-      text: scene.type === "WEBSITE_DEMO" ? assets.websiteScreenshot : script.coreSellingPoint,
+      text: detailText,
       x: "118",
       y: "430",
       size: 38,
@@ -67,17 +68,20 @@ function filterForScene(scene: PlannedScene, script: ScriptData, assets: AssetDa
     }),
   ];
 
-  bulletLines.forEach((bullet, index) => {
-    filters.push(`drawbox=x=128:y=${930 + index * 112}:w=824:h=74:color=white@0.10:t=fill`);
-    filters.push(
-      drawText({
-        text: `- ${bullet}`,
-        x: "156",
-        y: String(946 + index * 112),
-        size: 38,
-        color: "white",
-      }),
-    );
+  bulletLines.forEach((lines, index) => {
+    const top = 920 + index * 130;
+    filters.push(`drawbox=x=128:y=${top}:w=824:h=102:color=white@0.10:t=fill`);
+    lines.forEach((line, lineIndex) => {
+      filters.push(
+        drawText({
+          text: `${lineIndex === 0 ? "- " : "  "}${line}`,
+          x: "156",
+          y: String(top + 18 + lineIndex * 40),
+          size: 34,
+          color: "white",
+        }),
+      );
+    });
   });
 
   captionLines.forEach((line, index) => {
@@ -94,6 +98,10 @@ function filterForScene(scene: PlannedScene, script: ScriptData, assets: AssetDa
   });
 
   return filters.join(",");
+}
+
+function hasUsableAsset(path: string | undefined): boolean {
+  return Boolean(path && path !== "unknown" && !path.startsWith("mock://"));
 }
 
 export async function renderSceneVideo(args: RenderSceneVideoArgs): Promise<void> {
@@ -143,14 +151,6 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
     "drawbox=x=108:y=392:w=864:h=420:color=0x00d4ff@0.42:t=8:enable='between(t,1.1,3.8)'",
     "drawbox=x=116:y=400:w=848:h=404:color=black@0.10:t=fill:enable='between(t,1.1,3.8)'",
     `drawbox=x=70:y=90:w=940:h=8:color=0x00d4ff@0.95:t=fill`,
-    drawText({
-      text: scene.title,
-      x: "86",
-      y: "174",
-      size: scene.title.length > 14 ? 56 : 70,
-      color: "white",
-      box: true,
-    }),
   ];
 
   captionLines.forEach((line, index) => {

@@ -75,23 +75,23 @@ manual asset file with:
 TOOLREEL_MANUAL_ASSETS=/absolute/path/to/assets.manual.json
 ```
 
-Remotion rendering uses a local Chrome process and an available local render port. On macOS, the MVP expects Chrome at:
+Remotion rendering uses a local headless Chrome process and an available local render port. By default, the MVP lets Remotion use its managed `headless-shell` browser. Override it only when you need a specific local Chrome binary:
 
 ```text
-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+REMOTION_CHROME_EXECUTABLE=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 ```
 
-Override it when needed:
+Runtime controls:
 
 ```text
-REMOTION_CHROME_EXECUTABLE=/path/to/chrome
+REMOTION_CHROME_MODE=headless-shell
 REMOTION_RENDER_PORT=39777
 REMOTION_RENDER_CONCURRENCY=1
 REMOTION_RENDER_TIMEOUT_MS=120000
 REMOTION_RENDER_ATTEMPTS=2
 ```
 
-If you run this inside a restricted agent sandbox, allow local port access for the generate command.
+If you run this inside a restricted agent sandbox, allow local port access and network access for the generate command so Remotion can download or launch its browser.
 
 ## Git Commit Messages
 

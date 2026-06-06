@@ -14,13 +14,13 @@ export async function generateScript(
       sceneType: "HOOK",
       title: input.name,
       narration: hook,
-      bullets: compactBullets([shorten(coreSellingPoint, 16), ...research.sellingPoints], 3),
+      bullets: compactBullets([coreSellingPoint, ...research.sellingPoints], 3),
     },
     {
       sceneType: "WEBSITE_DEMO",
       title: "官网与产品展示",
-      narration: `先看 ${input.name} 官网第一屏，快速判断它主打的能力和产品气质。`,
-      bullets: compactBullets([research.officialUrl, research.sourcePages?.[0]?.title, "真实官网截图"], 3),
+      narration: `先看 ${input.name} 的官网入口，快速判断它主打的能力和产品气质。`,
+      bullets: compactBullets([displayUrl(research.officialUrl), research.sourcePages?.[0]?.title, "官网入口"], 3),
     },
   ];
 
@@ -83,8 +83,18 @@ export async function generateScript(
 }
 
 function buildHook(toolName: string, research: ResearchResult): string {
+  if (!(research.sourcePages?.length || research.evidence?.length)) {
+    return `今天快速看 ${toolName}：先用官网入口和基础信息，判断它值不值得继续了解。`;
+  }
+
   const positioning = research.positioning || research.summary;
-  const clean = shorten(positioning.replace(new RegExp(`^${escapeRegex(toolName)}\\s*`, "i"), ""), 42);
+  const clean =
+    fitDisplayText(
+      positioning
+        .replace(new RegExp(`^${escapeRegex(toolName)}\\s*`, "i"), "")
+        .replace(/^是一个?/, ""),
+      42,
+    ) ?? "值得快速了解的 AI 工具";
   if (clean.includes("AI") || clean.includes("agent") || clean.includes("智能")) {
     return `${toolName} 不是简单换个界面，它真正值得看的是：${clean}`;
   }
@@ -96,13 +106,14 @@ function naturalTitle(value: string | undefined, fallback: string): string {
     return fallback;
   }
   const clean = value.replace(/[。.!！?？]$/, "");
-  return shorten(clean, 14);
+  return fitDisplayText(clean, 18) ?? fallback;
 }
 
 function compactBullets(values: Array<string | undefined>, limit: number): string[] {
   return values
     .filter((value): value is string => Boolean(value && value.trim()))
-    .map((value) => shorten(value, 18))
+    .map((value) => fitDisplayText(value, 32))
+    .filter((value): value is string => Boolean(value))
     .filter((value, index, array) => array.indexOf(value) === index)
     .slice(0, limit);
 }
@@ -118,9 +129,17 @@ function toChineseList(values: string[]): string {
   return `${clean.slice(0, -1).join("、")}，以及${clean.at(-1)}`;
 }
 
-function shorten(value: string, maxChars: number): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized.length <= maxChars ? normalized : `${normalized.slice(0, maxChars - 1)}…`;
+function fitDisplayText(value: string, maxChars: number): string | undefined {
+  const normalized = value.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
+  return normalized && normalized.length <= maxChars ? normalized : undefined;
+}
+
+function displayUrl(value: string): string | undefined {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return fitDisplayText(value, 24);
+  }
 }
 
 function escapeRegex(value: string): string {

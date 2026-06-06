@@ -4,6 +4,7 @@ import { collectAssets } from "../assets/collectAssets.ts";
 import { generateCover } from "../cover/generateCover.ts";
 import { mergeScenes } from "../merge/mergeScenes.ts";
 import { validateOutput } from "../quality/validateOutput.ts";
+import { validateVisibleText } from "../quality/validateVisibleText.ts";
 import { researchTool } from "../research/researchTool.ts";
 import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
 import { renderRemotionScene } from "../renderers/remotion/renderRemotionScene.ts";
@@ -69,6 +70,8 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   await generateCover(script, assets, join(outputDir, "cover.png"));
   const finalVideo = await mergeScenes(scenes, voice.outputPath, join(outputDir, "final.mp4"));
   const validation = await validateOutput(finalVideo);
+  validation.checks.push(...validateVisibleText(script, scenes, captions));
+  validation.passed = validation.checks.every((item) => item.passed);
   await writeJson(join(outputDir, "validation.json"), validation);
 
   const rendererSet = new Set(scenes.map((scene) => scene.renderer));

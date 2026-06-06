@@ -11,7 +11,6 @@ import { sceneFileName } from "../../utils/text.ts";
 
 const REMOTION_ENTRY = "src/renderers/remotion/compositions/index.ts";
 const REMOTION_COMPOSITION_ID = "ToolReelScene";
-const DEFAULT_CHROME_EXECUTABLE = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const REMOTION_BUNDLE_DIR = resolve(".remotion/bundle");
 const REMOTION_PUBLIC_ASSET_DIR = "remotion-assets";
 
@@ -184,14 +183,28 @@ async function createPreviewImage(
 }
 
 function getRemotionRuntimeOptions(): {
-  browserExecutable: string;
+  browserExecutable?: string;
   port?: number;
+  chromeMode: "chrome-for-testing" | "headless-shell";
+  chromiumOptions: {
+    gl: "angle";
+    ignoreCertificateErrors: boolean;
+  };
 } {
   const rawPort = process.env.REMOTION_RENDER_PORT?.trim();
   const port = rawPort ? Number(rawPort) : undefined;
+  const browserExecutable = process.env.REMOTION_CHROME_EXECUTABLE?.trim();
 
   return {
-    browserExecutable: process.env.REMOTION_CHROME_EXECUTABLE?.trim() || DEFAULT_CHROME_EXECUTABLE,
+    ...(browserExecutable ? { browserExecutable } : {}),
     ...(Number.isFinite(port) ? { port } : {}),
+    chromeMode:
+      process.env.REMOTION_CHROME_MODE === "chrome-for-testing"
+        ? "chrome-for-testing"
+        : "headless-shell",
+    chromiumOptions: {
+      gl: "angle",
+      ignoreCertificateErrors: true,
+    },
   };
 }

@@ -21,6 +21,18 @@ function compactCaption(text: string): string[] {
   return lines.slice(0, 2);
 }
 
+function bulletLines(text: string): string[] {
+  const normalized = text.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
+  if (!normalized || normalized.length > 34) {
+    return [];
+  }
+  const lines: string[] = [];
+  for (let index = 0; index < normalized.length; index += 17) {
+    lines.push(normalized.slice(index, index + 17));
+  }
+  return lines.slice(0, 2);
+}
+
 const baseStyles = {
   fontFamily:
     '"Hiragino Sans GB", "STHeiti", "PingFang SC", "Arial Unicode MS", Arial, sans-serif',
@@ -192,18 +204,24 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
         </div>
       </div>
 
-      <div style={{ position: "absolute", top: 930, left: 128, width: 824 }}>
-        {scene.bullets.slice(0, 3).map((bullet, index) => (
+      <div style={{ position: "absolute", top: 910, left: 128, width: 824 }}>
+        {scene.bullets
+          .map((bullet) => ({ bullet, lines: bulletLines(bullet) }))
+          .filter((item) => item.lines.length)
+          .slice(0, 3)
+          .map(({ bullet, lines }, index) => (
           <div
             key={bullet}
             style={{
-              height: 74,
-              marginBottom: 38,
-              padding: "15px 28px",
+              minHeight: 96,
+              marginBottom: 28,
+              padding: "14px 28px",
               boxSizing: "border-box",
               background: "rgba(255,255,255,0.10)",
-              fontSize: 38,
-              lineHeight: 1.1,
+              fontSize: 34,
+              lineHeight: 1.18,
+              display: "flex",
+              alignItems: "center",
               opacity: interpolate(frame, [8 + index * 6, 18 + index * 6], [0, 1], {
                 extrapolateRight: "clamp",
               }),
@@ -212,7 +230,14 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
               })}px)`,
             }}
           >
-            - {bullet}
+            <div>
+              {lines.map((line, lineIndex) => (
+                <div key={line}>
+                  {lineIndex === 0 ? "- " : "\u00A0\u00A0"}
+                  {line}
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>

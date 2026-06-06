@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { bundle } from "@remotion/bundler";
@@ -13,6 +14,7 @@ const REMOTION_ENTRY = "src/renderers/remotion/compositions/index.ts";
 const REMOTION_COMPOSITION_ID = "ToolReelScene";
 const REMOTION_BUNDLE_DIR = resolve(".remotion/bundle");
 const REMOTION_PUBLIC_ASSET_DIR = "remotion-assets";
+const LOCAL_CHROME_WRAPPER = resolve("scripts/remotion-chrome-wrapper.sh");
 
 let bundledServeUrl: Promise<string> | undefined;
 
@@ -193,13 +195,14 @@ function getRemotionRuntimeOptions(): {
 } {
   const rawPort = process.env.REMOTION_RENDER_PORT?.trim();
   const port = rawPort ? Number(rawPort) : undefined;
-  const browserExecutable = process.env.REMOTION_CHROME_EXECUTABLE?.trim();
+  const browserExecutable =
+    process.env.REMOTION_CHROME_EXECUTABLE?.trim() || getDefaultBrowserExecutable();
 
   return {
     ...(browserExecutable ? { browserExecutable } : {}),
     ...(Number.isFinite(port) ? { port } : {}),
     chromeMode:
-      process.env.REMOTION_CHROME_MODE === "chrome-for-testing"
+      process.env.REMOTION_CHROME_MODE === "chrome-for-testing" || browserExecutable
         ? "chrome-for-testing"
         : "headless-shell",
     chromiumOptions: {
@@ -207,4 +210,8 @@ function getRemotionRuntimeOptions(): {
       ignoreCertificateErrors: true,
     },
   };
+}
+
+function getDefaultBrowserExecutable(): string | undefined {
+  return existsSync(LOCAL_CHROME_WRAPPER) ? LOCAL_CHROME_WRAPPER : undefined;
 }

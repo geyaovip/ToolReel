@@ -75,7 +75,7 @@ manual asset file with:
 TOOLREEL_MANUAL_ASSETS=/absolute/path/to/assets.manual.json
 ```
 
-Remotion rendering uses a local headless Chrome process and an available local render port. By default, the MVP lets Remotion use its managed `headless-shell` browser. Override it only when you need a specific local Chrome binary:
+Remotion rendering uses a local headless Chrome process and an available local render port. On macOS, the MVP uses `scripts/remotion-chrome-wrapper.sh` by default so Chrome runs with a clean local profile and crash reporting disabled. Override it only when you need a specific browser binary:
 
 ```text
 REMOTION_CHROME_EXECUTABLE=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
@@ -84,14 +84,15 @@ REMOTION_CHROME_EXECUTABLE=/Applications/Google Chrome.app/Contents/MacOS/Google
 Runtime controls:
 
 ```text
-REMOTION_CHROME_MODE=headless-shell
+REMOTION_CHROME_MODE=chrome-for-testing
 REMOTION_RENDER_PORT=39777
 REMOTION_RENDER_CONCURRENCY=1
 REMOTION_RENDER_TIMEOUT_MS=120000
 REMOTION_RENDER_ATTEMPTS=2
+REMOTION_CHROME_USER_DATA_DIR=/private/tmp/toolreel-remotion-chrome-profile
 ```
 
-If you run this inside a restricted agent sandbox, allow local port access and network access for the generate command so Remotion can download or launch its browser.
+If you run this inside a restricted agent sandbox, allow local port access and browser launch access for the generate command. The wrapper avoids the macOS Crashpad/Application Support permission failure that can otherwise stop Remotion before rendering starts.
 
 ## Git Commit Messages
 

@@ -94,7 +94,7 @@ Remotion 适合结构化动画和信息卡片：
 
 Remotion 渲染必须通过真实 Remotion composition 输出，不要长期停留在 FFmpeg 文字占位。MVP 至少应覆盖 `HOOK`、`SELLING_POINT`、`CTA` 三类结构化 Scene。
 
-Remotion renderer 需要可用的本地 Chrome 和本地端口。若在受限沙箱中运行，需要为生成命令授予本地端口权限；不要因此退回到永久占位渲染。
+Remotion renderer 需要可用的本地 Chrome 和本地端口。macOS 本地开发默认通过 `scripts/remotion-chrome-wrapper.sh` 启动 Chrome，使用独立 profile 并关闭 crash reporting，避免 Crashpad 或 Application Support 权限导致渲染中断。若在受限沙箱中运行，需要为生成命令授予本地端口和浏览器启动权限；不要因此退回到永久占位渲染。
 
 默认使用 Remotion 的 Scene：
 

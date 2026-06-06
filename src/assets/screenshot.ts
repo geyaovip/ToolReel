@@ -1,9 +1,9 @@
 import { access } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { ensureDir } from "../utils/file.ts";
 
-const DEFAULT_CHROME_EXECUTABLE = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const DEFAULT_CHROME_EXECUTABLE = resolve("scripts/remotion-chrome-wrapper.sh");
 
 export async function captureWebsiteScreenshot(url: string, outputPath: string): Promise<string> {
   await ensureDir(dirname(outputPath));
@@ -13,10 +13,13 @@ export async function captureWebsiteScreenshot(url: string, outputPath: string):
   await runChrome([
     "--headless=new",
     "--disable-gpu",
+    "--disable-crash-reporter",
+    "--disable-crashpad",
     "--hide-scrollbars",
     "--no-first-run",
     "--no-default-browser-check",
     "--disable-dev-shm-usage",
+    `--user-data-dir=${process.env.REMOTION_CHROME_USER_DATA_DIR || "/private/tmp/toolreel-remotion-chrome-profile"}`,
     "--window-size=1440,2200",
     `--screenshot=${outputPath}`,
     url,

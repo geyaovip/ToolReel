@@ -147,3 +147,10 @@ outputs/YYYY-MM-DD-cursor/first-frame.png
 ## MVP Scope
 
 This stage uses real first-pass official-site research, automatic creative direction for tool explainers, dynamic self-media script planning, real first-pass asset collection, MiniMax TTS, and a HyperFrames website-demo scene. Remotion is the core renderer for structured scenes. The pipeline shape is real: CLI input, JSON artifacts, research, creative direction, asset collection, scene planning, renderer routing, scene MP4 output, cover image, validation, and final MP4 merge.
+
+Post-MVP development is split by version in:
+
+```text
+docs/version-roadmap.md
+docs/versions/
+```

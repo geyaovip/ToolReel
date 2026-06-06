@@ -117,13 +117,14 @@ MVP 完成后，用户应能做到：
 6. 在同一目录看到 `run.json`，可快速排查输入、素材、字幕、音轨、场景、校验状态。
 7. 打开 `final.mp4` 后能看见竖屏短视频，且至少包含开场、卖点、官网展示占位、字幕、配音占位和 CTA。
 
-## 后续替换顺序
+## 后续版本
 
-MVP 跑通后再按以下顺序增强：
+MVP 跑通后，不在本文件继续扩展详细需求。后续版本拆分到独立文档：
 
-1. research 增强为更全面的多来源信息整理和事实校验。
-2. script 增强为更自然的口播节奏、字幕高亮和视频类型差异化表达。
-3. 素材采集增强为更深的官方视频、三方视频、公开评价和录屏筛选。
-4. HyperFrames 从占位模块升级为真实官网展示渲染。
-5. Remotion 视觉细节升级。
-6. 增加更多 TTS provider、videoType 和 Scene 模板。
+1. [v1.1 Content Quality](./versions/v1.1-content-quality.md)：research、Creative、脚本和内容质检。
+2. [v1.2 Assets and HyperFrames](./versions/v1.2-assets-hyperframes.md)：素材采集、官网录屏、HyperFrames 网页展示。
+3. [v1.3 Visual Quality](./versions/v1.3-visual-quality.md)：Remotion 模板、字幕、封面和自动质检。
+4. [v1.4 Video Types](./versions/v1.4-video-types.md)：教程、对比、榜单、更新速递等视频类型。
+5. [v1.5 Productization](./versions/v1.5-productization.md)：任务化、审核流、批量生产和产品化界面。
+
+总览见 [Version Roadmap](./version-roadmap.md)。

@@ -372,8 +372,10 @@ outputs/YYYY-MM-DD-tool-slug/
 1. 先跑通全流程，再优化细节。
 2. 先 CLI，后后台。
 3. 先 mock 数据，后真实 API。
-4. 先 Remotion，后 HyperFrames 深度接入。
+4. MVP 先保证 Remotion 结构化场景稳定，v1.2 再系统增强 HyperFrames 官网和网页现场感。
 5. 先生成视频，再追求视觉高级。
 6. 不过早引入数据库。
 7. 不过早做登录系统。
 8. 不过早做复杂管理后台。
+
+MVP 之后的版本拆分见 [Version Roadmap](./version-roadmap.md)。

@@ -42,10 +42,11 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 - Logo 路径。
 - 官网截图路径。
 - 产品截图路径。
-- 配音音频。
 - HyperFrames 实际渲染。
 
 mock 数据也必须符合真实数据结构，方便后续替换。
+
+配音不再属于可 mock 部分。最终视频必须使用真实 TTS provider 生成的音频；当前 provider 是 MiniMax，未来可以扩展其他 TTS 来源。
 
 ## 不做的部分
 
@@ -122,7 +123,6 @@ MVP 跑通后再按以下顺序增强：
 1. research 增强为更全面的多来源信息整理和事实校验。
 2. script 增强为更自然的口播节奏、字幕高亮和视频类型差异化表达。
 3. 素材采集增强为更深的官方视频、三方视频、公开评价和录屏筛选。
-4. mock voice 替换为 MiniMax TTS。
-5. HyperFrames 从占位模块升级为真实官网展示渲染。
-6. Remotion 视觉细节升级。
-7. 增加更多 videoType 和 Scene 模板。
+4. HyperFrames 从占位模块升级为真实官网展示渲染。
+5. Remotion 视觉细节升级。
+6. 增加更多 TTS provider、videoType 和 Scene 模板。

@@ -11,9 +11,9 @@ pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"
 
 ## TTS
 
-The pipeline uses MiniMax TTS when `MINIMAX_API_KEY` is configured. Without a key,
-it falls back to macOS `say` local speech so the MVP pipeline can still finish
-with a spoken audio track instead of a test tone.
+The pipeline uses real TTS audio for final videos. The current provider is MiniMax;
+without `MINIMAX_API_KEY`, generation fails instead of using a local voice or test
+tone.
 
 ```bash
 cp .env.example .env
@@ -24,13 +24,6 @@ Then fill:
 ```text
 MINIMAX_API_KEY=your_api_key
 MINIMAX_TTS_VOICE_ID=Chinese (Mandarin)_Radio_Host
-```
-
-Optional local fallback controls:
-
-```text
-TOOLREEL_LOCAL_TTS_VOICE=Reed (中文（中国大陆）)
-TOOLREEL_LOCAL_TTS_RATE=185
 ```
 
 TTS output metadata is written to:
@@ -138,4 +131,4 @@ outputs/YYYY-MM-DD-cursor/first-frame.png
 
 ## MVP Scope
 
-This stage uses real first-pass official-site research, dynamic script planning, real first-pass asset collection, MiniMax TTS with local mock fallback, and a HyperFrames website-demo scene. Remotion is the core renderer for structured scenes. The pipeline shape is real: CLI input, JSON artifacts, research, asset collection, scene planning, renderer routing, scene MP4 output, cover image, validation, and final MP4 merge.
+This stage uses real first-pass official-site research, dynamic script planning, real first-pass asset collection, MiniMax TTS, and a HyperFrames website-demo scene. Remotion is the core renderer for structured scenes. The pipeline shape is real: CLI input, JSON artifacts, research, asset collection, scene planning, renderer routing, scene MP4 output, cover image, validation, and final MP4 merge.

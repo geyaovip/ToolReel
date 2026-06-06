@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { FPS, VIDEO_HEIGHT, VIDEO_WIDTH } from "../../config.ts";
-import type { AssetData, PlannedScene, ScriptData } from "../../types.ts";
+import type { AssetData, Caption, PlannedScene, ScriptData } from "../../types.ts";
 import { ensureDir } from "../../utils/file.ts";
 import { runFfmpeg } from "../../utils/ffmpeg.ts";
 import { slugify } from "../../utils/slug.ts";
@@ -33,6 +33,7 @@ export async function renderRemotionScene(
   scene: PlannedScene,
   script: ScriptData,
   assets: AssetData,
+  captions: Caption[],
   scenesDir: string,
 ): Promise<string> {
   const outputPath = join(scenesDir, sceneFileName(scene.index, scene.id));
@@ -42,6 +43,7 @@ export async function renderRemotionScene(
     scene,
     script,
     assets: browserAssets,
+    captions: captionsForScene(scene, captions),
   };
   await renderWithRetry({ scene, outputPath, inputProps });
 
@@ -59,6 +61,7 @@ async function renderWithRetry({
     scene: PlannedScene;
     script: ScriptData;
     assets: AssetData;
+    captions: Caption[];
   };
 }): Promise<void> {
   const maxAttempts = Number(process.env.REMOTION_RENDER_ATTEMPTS || 2);
@@ -82,7 +85,7 @@ async function renderWithRetry({
           width: VIDEO_WIDTH,
           height: VIDEO_HEIGHT,
           fps: FPS,
-          durationInFrames: scene.duration * FPS,
+          durationInFrames: Math.ceil(scene.duration * FPS),
         },
         codec: "h264",
         outputLocation: outputPath,
@@ -106,6 +109,17 @@ async function renderWithRetry({
   }
 
   throw lastError;
+}
+
+function captionsForScene(scene: PlannedScene, captions: Caption[]): Caption[] {
+  const sceneStart = captions.find((caption) => caption.sceneId === scene.id)?.start ?? 0;
+  return captions
+    .filter((caption) => caption.sceneId === scene.id)
+    .map((caption) => ({
+      ...caption,
+      start: Math.max(0, caption.start - sceneStart),
+      end: Math.max(0, caption.end - sceneStart),
+    }));
 }
 
 async function resetRemotionBundle(): Promise<void> {

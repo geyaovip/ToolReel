@@ -12,7 +12,7 @@ import { selectRenderer } from "../router/selectRenderer.ts";
 import { writeRunManifest } from "../run/writeRunManifest.ts";
 import { planScenes } from "../scenes/planScenes.ts";
 import { generateScript } from "../script/generateScript.ts";
-import { captionsToSrt, generateCaptions } from "../subtitles/generateCaptions.ts";
+import { captionsToSrt, fitSceneDurationsToVoice, generateCaptions } from "../subtitles/generateCaptions.ts";
 import { generateVoice } from "../tts/generateVoice.ts";
 import type { GenerateInput, PipelineResult, PlannedScene, VideoType } from "../types.ts";
 import { ensureDir, writeJson } from "../utils/file.ts";
@@ -46,8 +46,9 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     ...scene,
     renderer: selectRenderer(scene.type),
   })) satisfies PlannedScene[];
-  const captions = await generateCaptions(scenes);
   const voice = await generateVoice(script, join(outputDir, "voice.mp3"));
+  scenes = fitSceneDurationsToVoice(scenes, voice);
+  const captions = await generateCaptions(scenes);
 
   await writeJson(join(outputDir, "research.json"), research);
   await writeJson(join(outputDir, "script.json"), script);
@@ -60,8 +61,8 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   for (const scene of scenes) {
     const outputPath =
       scene.renderer === "HyperFrames"
-        ? await renderHyperFrameScene(scene, script, assets, scenesDir)
-        : await renderRemotionScene(scene, script, assets, scenesDir);
+        ? await renderHyperFrameScene(scene, script, assets, captions, scenesDir)
+        : await renderRemotionScene(scene, script, assets, captions, scenesDir);
     renderedScenes.push({ ...scene, outputPath });
   }
   scenes = renderedScenes;

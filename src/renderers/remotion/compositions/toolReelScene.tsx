@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { chunkText } from "../../../utils/text.ts";
 import type { ToolReelSceneProps } from "./root.tsx";
 
 const palette = {
@@ -11,15 +12,6 @@ const palette = {
   accent: "#8df5c5",
   blue: "#00d4ff",
 };
-
-function compactCaption(text: string): string[] {
-  const normalized = text.replace(/\s+/g, "");
-  const lines: string[] = [];
-  for (let index = 0; index < normalized.length; index += 12) {
-    lines.push(normalized.slice(index, index + 12));
-  }
-  return lines.slice(0, 2);
-}
 
 function bulletLines(text: string): string[] {
   const normalized = text.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
@@ -39,13 +31,17 @@ const baseStyles = {
   letterSpacing: 0,
 };
 
-export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, assets }) => {
+export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, assets, captions }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const currentTime = frame / fps;
   const enter = spring({ frame, fps, config: { damping: 18, stiffness: 95 } });
   const fade = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
   const accent = scene.type === "WEBSITE_DEMO" ? palette.blue : palette.accent;
-  const captionLines = compactCaption(scene.narration);
+  const activeCaption =
+    captions.find((caption) => currentTime >= caption.start && currentTime < caption.end) ??
+    captions[captions.length - 1];
+  const captionLines = chunkText(activeCaption?.text ?? scene.narration, 11);
   const screenshot = usableImage(assets.productScreenshot) || usableImage(assets.websiteScreenshot);
   const logo = usableImage(assets.logo);
   const imageDrift = interpolate(frame, [0, scene.duration * fps], [0, -34], {
@@ -260,9 +256,10 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
             style={{
               padding: "12px 26px",
               background: "rgba(0,0,0,0.58)",
-              fontSize: 58,
+              fontSize: 52,
               lineHeight: 1.16,
               textAlign: "center",
+              whiteSpace: "nowrap",
             }}
           >
             {line}

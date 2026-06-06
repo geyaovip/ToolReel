@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 import { AUDIO_SAMPLE_RATE, FONT_FILE, FPS, VIDEO_HEIGHT, VIDEO_WIDTH } from "../../config.ts";
-import type { AssetData, PlannedScene, ScriptData } from "../../types.ts";
+import type { AssetData, Caption, PlannedScene, ScriptData } from "../../types.ts";
 import { ensureDir } from "../../utils/file.ts";
 import { runFfmpeg } from "../../utils/ffmpeg.ts";
 import { chunkText, displayLines, escapeDrawText } from "../../utils/text.ts";
@@ -9,6 +9,7 @@ type RenderSceneVideoArgs = {
   scene: PlannedScene;
   script: ScriptData;
   assets: AssetData;
+  captions: Caption[];
   outputPath: string;
   theme: "remotion" | "hyperframes";
 };
@@ -20,6 +21,7 @@ function drawText({
   size,
   color,
   box = false,
+  enable,
 }: {
   text: string;
   x: string;
@@ -27,15 +29,23 @@ function drawText({
   size: number;
   color: string;
   box?: boolean;
+  enable?: string;
 }): string {
   const boxConfig = box ? ":box=1:boxcolor=black@0.34:boxborderw=22" : "";
-  return `drawtext=fontfile='${FONT_FILE}':text='${escapeDrawText(text)}':x=${x}:y=${y}:fontsize=${size}:fontcolor=${color}${boxConfig}`;
+  const enableConfig = enable ? `:enable='${enable}'` : "";
+  return `drawtext=fontfile='${FONT_FILE}':text='${escapeDrawText(text)}':x=${x}:y=${y}:fontsize=${size}:fontcolor=${color}${boxConfig}${enableConfig}`;
 }
 
-function filterForScene(scene: PlannedScene, script: ScriptData, assets: AssetData, theme: string): string {
+function filterForScene(
+  scene: PlannedScene,
+  script: ScriptData,
+  assets: AssetData,
+  captions: Caption[],
+  theme: string,
+): string {
   const bg = theme === "hyperframes" ? "0x101820" : "0x09111f";
   const accent = theme === "hyperframes" ? "0x00d4ff" : "0x8df5c5";
-  const captionLines = chunkText(scene.narration, 12);
+  const captionLines = timedCaptionLines(captions.length ? captions : fallbackCaptions(scene));
   const hasWebsiteScreenshot = hasUsableAsset(assets.websiteScreenshot);
   const bulletLines = scene.bullets
     .filter((bullet) => hasWebsiteScreenshot || !bullet.includes("真实官网截图"))
@@ -84,15 +94,16 @@ function filterForScene(scene: PlannedScene, script: ScriptData, assets: AssetDa
     });
   });
 
-  captionLines.forEach((line, index) => {
+  captionLines.forEach((captionLine) => {
     filters.push(
       drawText({
-        text: line,
+        text: captionLine.text,
         x: "(w-text_w)/2",
-        y: String(1540 + index * 74),
+        y: String(1540 + captionLine.lineIndex * 74),
         size: 58,
         color: "white",
         box: true,
+        enable: `between(t\\,${captionLine.start}\\,${captionLine.end})`,
       }),
     );
   });
@@ -116,7 +127,7 @@ export async function renderSceneVideo(args: RenderSceneVideoArgs): Promise<void
     "-f",
     "lavfi",
     "-i",
-    filterForScene(scene, script, assets, theme),
+    filterForScene(scene, script, assets, args.captions, theme),
     "-f",
     "lavfi",
     "-i",
@@ -140,7 +151,7 @@ export async function renderSceneVideo(args: RenderSceneVideoArgs): Promise<void
 
 async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise<void> {
   const { scene, assets, outputPath } = args;
-  const captionLines = chunkText(scene.narration, 12);
+  const captionLines = timedCaptionLines(args.captions.length ? args.captions : fallbackCaptions(scene));
   const scrollDistance = 380;
   const filters = [
     `scale=w=-1:h=${VIDEO_HEIGHT + scrollDistance}:force_original_aspect_ratio=increase`,
@@ -153,15 +164,16 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
     `drawbox=x=70:y=90:w=940:h=8:color=0x00d4ff@0.95:t=fill`,
   ];
 
-  captionLines.forEach((line, index) => {
+  captionLines.forEach((captionLine) => {
     filters.push(
       drawText({
-        text: line,
+        text: captionLine.text,
         x: "(w-text_w)/2",
-        y: String(1540 + index * 74),
+        y: String(1540 + captionLine.lineIndex * 74),
         size: 58,
         color: "white",
         box: true,
+        enable: `between(t\\,${captionLine.start}\\,${captionLine.end})`,
       }),
     );
   });
@@ -192,4 +204,21 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
     "128k",
     outputPath,
   ]);
+}
+
+function fallbackCaptions(scene: PlannedScene): Caption[] {
+  return [{ start: 0, end: scene.duration, text: scene.narration, sceneId: scene.id, sceneIndex: scene.index }];
+}
+
+function timedCaptionLines(captions: Caption[]): Array<{ text: string; start: number; end: number; lineIndex: number }> {
+  return captions.flatMap((caption) =>
+    chunkText(caption.text, 12)
+      .slice(0, 2)
+      .map((line, lineIndex) => ({
+        text: line,
+        start: caption.start,
+        end: caption.end,
+        lineIndex,
+      })),
+  );
 }

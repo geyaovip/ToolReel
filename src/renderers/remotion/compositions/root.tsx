@@ -1,6 +1,6 @@
 import React from "react";
 import { Composition } from "remotion";
-import type { AssetData, PlannedScene, ScriptData } from "../../../types.ts";
+import type { AssetData, Caption, PlannedScene, ScriptData } from "../../../types.ts";
 import { ToolReelScene } from "./toolReelScene.tsx";
 
 const FPS = 30;
@@ -11,6 +11,7 @@ export type ToolReelSceneProps = {
   scene: PlannedScene;
   script: ScriptData;
   assets: AssetData;
+  captions: Caption[];
 };
 
 const defaultProps: ToolReelSceneProps = {
@@ -37,6 +38,15 @@ const defaultProps: ToolReelSceneProps = {
     productScreenshot: "mock://product",
     source: "mock",
   },
+  captions: [
+    {
+      start: 0,
+      end: 6,
+      text: "这个 AI 工具正在改变很多人的工作方式。",
+      sceneId: "hook",
+      sceneIndex: 1,
+    },
+  ],
 };
 
 export const RemotionRoot: React.FC = () => {

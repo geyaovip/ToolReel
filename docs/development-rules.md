@@ -203,7 +203,9 @@ captions.srt
 ]
 ```
 
-字幕时间轴必须基于最终 scene 顺序和 scene duration 生成，最后一条字幕的 `end` 应与视频主体时间轴一致。
+字幕时间轴必须基于真实 TTS 音频时长、最终 scene 顺序和 scene duration 生成，最后一条字幕的 `end` 应与视频主体时间轴一致。生成真实 TTS 后，应按旁白长度和停顿权重重新分配 scene duration，再生成 `captions.json` 和 `captions.srt`。
+
+渲染器必须使用 `captions.json` 的时间轴显示当前字幕，不要把整段 scene narration 静态显示在整个 scene 里。Remotion 渲染时小数秒 duration 需要转换为整数帧数。
 
 展示规则：
 
@@ -211,6 +213,7 @@ captions.srt
 - 每行 8-12 个中文字。
 - 最多 2 行。
 - 自动换行。
+- 不要把短标点或 1-2 个字的残片单独作为一条字幕。
 - 视频画面文字不得用省略号截断；能完整换行展示就展示，放不下就过滤该信息或在脚本层改写成更短的完整表达。
 - URL 不要半截展示；需要展示时优先使用完整域名，如 `cursor.com`。
 - `validation.json` 必须检查可见文案，不允许输出省略号、`unknown` 占位、内部模板标签或“待补充”等未完成状态文案。

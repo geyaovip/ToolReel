@@ -21,7 +21,7 @@ export async function generateScript(
     {
       sceneType: "WEBSITE_DEMO",
       title: "先看官网怎么说",
-      narration: `先看 ${input.name} 的官网入口，不急着听宣传词，先抓它的定位和可信证据。`,
+      narration: `先看 ${input.name} 的官网入口，不急着听宣传词，先抓两个信息：它主打什么，以及它想解决什么场景。`,
       bullets: compactBullets([displayUrl(research.officialUrl), research.sourcePages?.[0]?.title, "官网入口"], 3),
     },
   ];
@@ -30,14 +30,14 @@ export async function generateScript(
     segments.push({
       sceneType: "SELLING_POINT",
       title: naturalTitle(highlights[0].title, "核心亮点"),
-      narration: `我会先看它有没有一个能落地的核心点。${input.name} 这里最值得看的是${toChineseList(highlights.slice(0, 2).map((item) => item.title))}。`,
+      narration: `讲清楚它是干什么的之后，再看一个核心功能点。${input.name} 这里最值得看的是 ${toChineseList(highlights.slice(0, 2).map((item) => item.title))}。`,
       bullets: highlights.slice(0, 3).map((item) => item.title),
     });
   } else if (research.sellingPoints.length) {
     segments.push({
       sceneType: "SELLING_POINT",
       title: "核心亮点",
-      narration: `别把它当成单纯功能列表看。${input.name} 的核心价值，先看${toChineseList(research.sellingPoints.slice(0, 3))}。`,
+      narration: `别把它当成单纯功能列表看。${input.name} 的核心价值，可以先理解成 ${toChineseList(research.sellingPoints.slice(0, 3))}。`,
       bullets: research.sellingPoints.slice(0, 3),
     });
   }
@@ -46,7 +46,7 @@ export async function generateScript(
     segments.push({
       sceneType: "WORKFLOW",
       title: "放进真实场景看",
-      narration: `真正决定要不要试它的，不是功能名，而是它能不能放进你的工作流。它尤其适合${toChineseList(useCases.slice(0, 2))}。`,
+      narration: `接下来要看它适合什么场景。工具科普最重要的不是背功能名，而是知道它能放进哪类工作流。它尤其适合 ${toChineseList(useCases.slice(0, 2))}。`,
       bullets: useCases,
     });
   } else if (research.targetUsers.length) {
@@ -70,9 +70,9 @@ export async function generateScript(
 
   segments.push({
     sceneType: "CTA",
-    title: "怎么判断值不值得试",
-    narration: `最后给你一个简单判断法：先找一个自己的真实场景，再试一个核心功能。如果这一步真的省时间，${input.name} 才值得继续用。`,
-    bullets: ["找真实场景", "试核心功能", "看是否真的省时间"],
+    title: "最后怎么记住它",
+    narration: `最后用一句话记住它：先看它解决的场景，再看一个核心功能。如果这个场景正好是你的问题，${input.name} 就值得进一步了解。`,
+    bullets: ["记住定位", "对应场景", "再试核心功能"],
   });
 
   return {
@@ -85,7 +85,7 @@ export async function generateScript(
       angleId: creative.selectedAngle.id,
       angleTitle: creative.selectedAngle.title,
       coverTitle: creative.coverIdeas[0]?.title ?? `${input.name} 值得试吗`,
-      coverSubtitle: creative.coverIdeas[0]?.subtitle ?? "一分钟判断值不值得试",
+      coverSubtitle: creative.coverIdeas[0]?.subtitle ?? "一分钟讲清楚",
     },
   };
 }
@@ -93,7 +93,7 @@ export async function generateScript(
 function buildHook(toolName: string, research: ResearchResult, creative: CreativeBrief): string {
   const selectedAngle = creative.selectedAngle;
   if (!(research.sourcePages?.length || research.evidence?.length)) {
-    return `这条不做产品说明书，今天只用基础信息快速判断 ${toolName} 值不值得继续了解。`;
+    return `这条不做产品说明书，今天只用基础信息讲清楚 ${toolName} 是干什么的。`;
   }
 
   const positioning = research.positioning || research.summary;
@@ -105,19 +105,22 @@ function buildHook(toolName: string, research: ResearchResult, creative: Creativ
       42,
     ) ?? "值得快速了解的 AI 工具";
 
-  if (selectedAngle.id === "workflow-shift") {
-    return `如果你还只是把 ${toolName} 当成一个功能工具，可能低估它了。它真正值得看的是：${clean}`;
+  if (selectedAngle.id === "what-it-does") {
+    return `这条不做产品说明书，先用一分钟讲清楚 ${toolName} 是干什么的：${clean}`;
   }
-  if (selectedAngle.id === "hidden-difference") {
-    return `这类工具最容易看错，因为表面功能都很像。${toolName} 真正要看的，是${clean}`;
+  if (selectedAngle.id === "workflow-fit") {
+    return `一个工具值不值得知道，关键看它能不能放进真实工作流。${toolName} 这次先看：${clean}`;
   }
-  if (selectedAngle.id === "time-saver") {
-    return `${toolName} 是不是真的省时间，不看宣传语，先看它能不能做到：${clean}`;
+  if (selectedAngle.id === "key-difference") {
+    return `这类工具最容易讲成一堆卖点。${toolName} 真正要看的是：${clean}`;
+  }
+  if (selectedAngle.id === "scenario-first") {
+    return `别先问 ${toolName} 功能多不多，先看它解决什么场景：${clean}`;
   }
   if (selectedAngle.id === "team-trust") {
     return `个人试用看功能，团队要用就得多看一层。${toolName} 这次我会重点看：${clean}`;
   }
-  return `这条不做产品说明书，只快速判断 ${toolName} 值不值得试：${clean}`;
+  return `这条不做产品说明书，只快速讲清楚 ${toolName}：${clean}`;
 }
 
 function naturalTitle(value: string | undefined, fallback: string): string {
@@ -166,8 +169,11 @@ function escapeRegex(value: string): string {
 }
 
 function shortTitle(toolName: string, angleTitle: string): string {
+  if (angleTitle.includes("干什么")) {
+    return `${toolName} 是干啥的`;
+  }
   if (angleTitle.includes("工作流")) {
-    return `${toolName} 的真正看点`;
+    return `${toolName} 怎么用`;
   }
   if (angleTitle.includes("团队")) {
     return `${toolName} 适合团队吗`;

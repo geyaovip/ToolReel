@@ -24,8 +24,8 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 4. 实现 CLI 输入。
 5. 生成 `input.json`。
 6. 基于官网 research 生成 `research.json`。
-7. 自动生成 `creative.json`，选择本期种草角度、分镜意图和封面标题方案。
-8. 基于 research 和 creative 生成动态 `script.json`，口播应更接近自媒体判断，不是官网功能清单。
+7. 自动生成 `creative.json`，选择本期工具科普角度、分镜意图和封面标题方案。
+8. 基于 research 和 creative 生成动态 `script.json`，口播要快速讲清楚工具是干什么的、适合什么场景，不是官网功能清单。
 9. 生成自动采集版 `assets.json`，至少包含官网截图、Logo 候选和外部素材候选。
 10. 生成与 scene 时间轴对齐的 `captions.json` 和 `captions.srt`。
 11. 生成真实 TTS `voice.mp3`，并在最终合成时作为 `final.mp4` 的主音轨。

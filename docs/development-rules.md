@@ -4,7 +4,7 @@
 
 ## 1. 产品边界
 
-ToolReel 的目标是自动生成 AI 工具种草短视频。用户只负责审核和发布，不应手动处理配音、字幕、剪辑、选图、排版或合成。
+ToolReel 的目标是自动生成 AI 工具科普/推荐短视频。用户只负责审核和发布，不应手动处理配音、字幕、剪辑、选图、排版或合成。
 
 第一阶段只实现 CLI，不实现：
 
@@ -26,7 +26,7 @@ ToolReel 的目标是自动生成 AI 工具种草短视频。用户只负责审�
 5. 快速判断是否值得试
 6. 结尾引导
 
-价格和免费版信息可以保留在 research JSON 里，但不作为工具种草短视频的默认板块。无法确认时使用 `unknown`，不能编造。
+价格和免费版信息可以保留在 research JSON 里，但不作为工具科普短视频的默认板块。无法确认时使用 `unknown`，不能编造。
 
 Research 和脚本结构不应被固定为“介绍、卖点、价格、人群”几类。不同产品的信息结构可以不同：
 
@@ -41,7 +41,7 @@ Research 和脚本结构不应被固定为“介绍、卖点、价格、人群�
 
 | videoType | 说明 | 默认渲染策略 |
 | --- | --- | --- |
-| `product_pick` | 单个 AI 工具种草 | Remotion + HyperFrames 混合 |
+| `product_pick` | 单个 AI 工具科普/推荐 | Remotion + HyperFrames 混合 |
 | `top_list` | AI 工具榜单 | Remotion |
 | `tutorial` | AI 工具教程 | Remotion，官网演示可用 HyperFrames |
 | `comparison` | 多个 AI 工具对比 | Remotion |
@@ -133,11 +133,12 @@ HyperFrames 适合网站展示和网页转视频：
 src/creative/generateCreativeBrief.ts
 ```
 
-Creative 层位于 research 之后、script/scenes/cover 之前。它承担自动编导职责：
+Creative 层位于 research 之后、script/scenes/cover 之前。它承担工具科普编导职责：
 
-- 自动选择一个最适合本期视频的种草角度，不把多个选项交给用户手动选择。
+- 自动选择一个最适合本期视频的科普角度，不把多个选项交给用户手动选择。
 - 输出 `creative.json`，记录候选角度、最终选择、分镜意图和封面标题方案，便于审计。
-- 口播脚本必须是自媒体判断口吻，不要写成生硬的产品介绍或官网功能清单。
+- 口播脚本必须让用户在极短时间内知道工具是干什么的、解决什么场景、核心能力是什么。
+- 口播可以有自媒体判断口吻，但不要写成生硬的产品介绍、官网功能清单或广告式种草。
 - 所有角度、判断、封面标题都必须基于 research 已拿到的事实和证据，不得编造价格、评价、排名、用户结果或未验证功能。
 - Creative 层可以借鉴 Creative Production 的 positioning、scene、ads 思路，但在 CLI MVP 中必须自动决策并继续执行 pipeline。
 

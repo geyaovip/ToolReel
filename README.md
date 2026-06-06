@@ -84,11 +84,12 @@ After research, ToolReel writes an automatic creative direction artifact:
 outputs/YYYY-MM-DD-cursor/creative.json
 ```
 
-This layer acts like an automated short-video producer. It scores a few content
-angles from researched facts, selects one angle without asking for a manual
-choice, then feeds the self-media style voice script, scene beats, and cover
-title. It must not invent product claims; it can only reframe verified research
-into a stronger recommendation angle.
+This layer acts like an automated short-video producer for tool explainers. It
+scores a few content angles from researched facts, selects one angle without
+asking for a manual choice, then feeds the self-media style voice script, scene
+beats, and cover title. It must quickly explain what the product does, which
+scenario it fits, and what core capability matters without inventing product
+claims.
 
 Remotion rendering uses a local headless Chrome process and an available local render port. On macOS, the MVP uses `scripts/remotion-chrome-wrapper.sh` by default so Chrome runs with a clean local profile and crash reporting disabled. Override it only when you need a specific browser binary:
 
@@ -145,4 +146,4 @@ outputs/YYYY-MM-DD-cursor/first-frame.png
 
 ## MVP Scope
 
-This stage uses real first-pass official-site research, automatic creative direction, dynamic self-media script planning, real first-pass asset collection, MiniMax TTS, and a HyperFrames website-demo scene. Remotion is the core renderer for structured scenes. The pipeline shape is real: CLI input, JSON artifacts, research, creative direction, asset collection, scene planning, renderer routing, scene MP4 output, cover image, validation, and final MP4 merge.
+This stage uses real first-pass official-site research, automatic creative direction for tool explainers, dynamic self-media script planning, real first-pass asset collection, MiniMax TTS, and a HyperFrames website-demo scene. Remotion is the core renderer for structured scenes. The pipeline shape is real: CLI input, JSON artifacts, research, creative direction, asset collection, scene planning, renderer routing, scene MP4 output, cover image, validation, and final MP4 merge.

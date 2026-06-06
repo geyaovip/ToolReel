@@ -9,9 +9,46 @@ function draw(text: string, y: number, size: number): string {
 
 export async function generateCover(
   script: ScriptData,
-  _assets: AssetData,
+  assets: AssetData,
   outputPath: string,
 ): Promise<string> {
+  if (assets.websiteScreenshot && assets.websiteScreenshot !== "unknown") {
+    try {
+      await generateCoverFromScreenshot(script, assets.websiteScreenshot, outputPath);
+      return outputPath;
+    } catch {
+      // Fall back to a generated cover when the screenshot cannot be decoded.
+    }
+  }
+
+  await generateFallbackCover(script, outputPath);
+  return outputPath;
+}
+
+async function generateCoverFromScreenshot(
+  script: ScriptData,
+  screenshotPath: string,
+  outputPath: string,
+): Promise<void> {
+  const subtitle = script.segments.find((segment) => segment.sceneType === "SELLING_POINT")?.title
+    ?? script.coreSellingPoint;
+  const filter = [
+    `scale=w=${VIDEO_WIDTH}:h=${VIDEO_HEIGHT}:force_original_aspect_ratio=increase`,
+    `crop=${VIDEO_WIDTH}:${VIDEO_HEIGHT}`,
+    "boxblur=10:2",
+    "eq=brightness=-0.20:saturation=0.72",
+    "drawbox=x=0:y=0:w=1080:h=1920:color=0x07111f@0.38:t=fill",
+    "drawbox=x=80:y=112:w=920:h=10:color=0x8df5c5@0.96:t=fill",
+    "drawbox=x=88:y=420:w=904:h=620:color=black@0.44:t=fill",
+    draw(script.toolName, 520, script.toolName.length > 10 ? 86 : 104),
+    draw(subtitle, 700, subtitle.length > 18 ? 48 : 58),
+    draw("一分钟看懂这个 AI 工具", 1220, 58),
+  ].join(",");
+
+  await runFfmpeg(["-y", "-i", screenshotPath, "-vf", filter, "-frames:v", "1", outputPath]);
+}
+
+async function generateFallbackCover(script: ScriptData, outputPath: string): Promise<void> {
   const filter = [
     `color=c=0x08111f:s=${VIDEO_WIDTH}x${VIDEO_HEIGHT}:d=1:r=1`,
     "format=yuv420p",
@@ -23,5 +60,4 @@ export async function generateCover(
   ].join(",");
 
   await runFfmpeg(["-f", "lavfi", "-i", filter, "-frames:v", "1", outputPath]);
-  return outputPath;
 }

@@ -38,6 +38,31 @@ export type ResearchResult = {
   pricing: "unknown" | string;
   targetUsers: string[];
   sellingPoints: string[];
+  positioning?: string;
+  highlights?: ResearchHighlight[];
+  useCases?: string[];
+  evidence?: ResearchEvidence[];
+  sourcePages?: ResearchSourcePage[];
+  unknowns?: string[];
+  notes?: string[];
+};
+
+export type ResearchHighlight = {
+  title: string;
+  detail: string;
+  sourceUrl: string;
+};
+
+export type ResearchEvidence = {
+  text: string;
+  sourceUrl: string;
+};
+
+export type ResearchSourcePage = {
+  url: string;
+  title?: string;
+  description?: string;
+  extractedTextLength: number;
 };
 
 export type ScriptSegment = {
@@ -59,13 +84,58 @@ export type AssetData = {
   logo: string;
   websiteScreenshot: string;
   productScreenshot: string;
-  source: "mock";
+  source: "auto" | "mock";
+  assetsDir?: string;
+  homepage?: {
+    url: string;
+    title?: string;
+    description?: string;
+    screenshotPath?: string;
+  };
+  logoCandidates?: AssetCandidate[];
+  imageCandidates?: AssetCandidate[];
+  videoCandidates?: AssetCandidate[];
+  socialCandidates?: AssetCandidate[];
+  quoteCandidates?: QuoteCandidate[];
+  localRecordings?: AssetCandidate[];
+  notes?: string[];
+};
+
+export type AssetCandidate = {
+  type: "logo" | "screenshot" | "image" | "video" | "social" | "recording";
+  url?: string;
+  path?: string;
+  label?: string;
+  source: "official_site" | "manual" | "third_party";
+  confidence: "high" | "medium" | "low";
+};
+
+export type QuoteCandidate = {
+  quote: string;
+  author?: string;
+  url?: string;
+  source: "manual" | "third_party";
+  confidence: "high" | "medium" | "low";
 };
 
 export type Caption = {
   start: number;
   end: number;
   text: string;
+  sceneId?: string;
+  sceneIndex?: number;
+};
+
+export type VoiceProvider = "minimax" | "mock";
+
+export type VoiceData = {
+  provider: VoiceProvider;
+  outputPath: string;
+  textLength: number;
+  durationSeconds?: number;
+  model?: string;
+  voiceId?: string;
+  fallbackReason?: string;
 };
 
 export type PlannedScene = {
@@ -86,6 +156,44 @@ export type PipelineResult = {
   scenes: PlannedScene[];
   renderMode: "Remotion" | "HyperFrames" | "Hybrid";
   validation?: OutputValidation;
+  runManifest?: RunManifest;
+};
+
+export type RunManifest = {
+  schemaVersion: 1;
+  generatedAt: string;
+  status: "passed" | "failed";
+  outputDir: string;
+  finalVideo: string;
+  renderMode: "Remotion" | "HyperFrames" | "Hybrid";
+  input: GenerateInput;
+  files: {
+    input: string;
+    research: string;
+    script: string;
+    assets: string;
+    captions: string;
+    captionsSrt: string;
+    voice: string;
+    voiceMeta: string;
+    scenes: string;
+    cover: string;
+    finalVideo: string;
+    validation: string;
+  };
+  summary: {
+    toolName: string;
+    videoType: VideoType;
+    durationSeconds?: number;
+    sceneCount: number;
+    captionCount: number;
+    voiceProvider: VoiceProvider;
+    assetSource: AssetData["source"];
+    researchSourcePageCount: number;
+    unknownCount: number;
+  };
+  checks: OutputValidationCheck[];
+  warnings: string[];
 };
 
 export type OutputValidationCheck = {

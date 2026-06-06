@@ -1,0 +1,29 @@
+{
+  "quoteCandidates": [
+    {
+      "quote": "Replace with a real public quote. Do not invent endorsements.",
+      "author": "Person or publication",
+      "url": "https://x.com/example/status/123",
+      "source": "manual",
+      "confidence": "high"
+    }
+  ],
+  "videoCandidates": [
+    {
+      "type": "video",
+      "url": "https://www.youtube.com/watch?v=official-demo",
+      "label": "Official demo video",
+      "source": "manual",
+      "confidence": "high"
+    }
+  ],
+  "localRecordings": [
+    {
+      "type": "recording",
+      "path": "/absolute/path/to/screen-recording.mp4",
+      "label": "Manual product recording",
+      "source": "manual",
+      "confidence": "high"
+    }
+  ]
+}

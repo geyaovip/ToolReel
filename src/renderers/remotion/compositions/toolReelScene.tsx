@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import type { ToolReelSceneProps } from "./root.tsx";
 
 const palette = {
@@ -21,15 +21,6 @@ function compactCaption(text: string): string[] {
   return lines.slice(0, 2);
 }
 
-function sceneLabel(type: string): string {
-  if (type === "HOOK") return "开场钩子";
-  if (type === "SELLING_POINT") return "核心卖点";
-  if (type === "CTA") return "结尾引导";
-  if (type === "PROBLEM") return "问题场景";
-  if (type === "TARGET_USER") return "适合人群";
-  return type.replaceAll("_", " ");
-}
-
 const baseStyles = {
   fontFamily:
     '"Hiragino Sans GB", "STHeiti", "PingFang SC", "Arial Unicode MS", Arial, sans-serif',
@@ -43,6 +34,14 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
   const fade = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
   const accent = scene.type === "WEBSITE_DEMO" ? palette.blue : palette.accent;
   const captionLines = compactCaption(scene.narration);
+  const screenshot = usableImage(assets.productScreenshot) || usableImage(assets.websiteScreenshot);
+  const logo = usableImage(assets.logo);
+  const imageDrift = interpolate(frame, [0, scene.duration * fps], [0, -34], {
+    extrapolateRight: "clamp",
+  });
+  const imageScale = interpolate(frame, [0, scene.duration * fps], [1.04, 1.1], {
+    extrapolateRight: "clamp",
+  });
 
   return (
     <AbsoluteFill
@@ -64,19 +63,6 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
           opacity: fade,
         }}
       />
-
-      <div
-        style={{
-          position: "absolute",
-          top: 122,
-          left: 76,
-          fontSize: 34,
-          color: palette.muted,
-          opacity: fade,
-        }}
-      >
-        Remotion · {sceneLabel(scene.type)}
-      </div>
 
       <div
         style={{
@@ -117,17 +103,92 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
             boxSizing: "border-box",
           }}
         >
-          <div style={{ fontSize: 76, lineHeight: 1.05 }}>{script.toolName}</div>
-          <div
-            style={{
-              marginTop: 28,
-              fontSize: 38,
-              lineHeight: 1.3,
-              color: palette.muted,
-            }}
-          >
-            {scene.type === "WEBSITE_DEMO" ? assets.websiteScreenshot : script.coreSellingPoint}
-          </div>
+          {screenshot ? (
+            <>
+              <Img
+                src={screenshot}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "top center",
+                  opacity: 0.86,
+                  transform: `translateY(${imageDrift}px) scale(${imageScale})`,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(180deg, rgba(7,17,31,0.06) 0%, rgba(7,17,31,0.20) 48%, rgba(7,17,31,0.76) 100%)",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: 28,
+                  right: 28,
+                  bottom: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 18,
+                }}
+              >
+                {logo ? (
+                  <div
+                    style={{
+                      width: 74,
+                      height: 74,
+                      background: "rgba(255,255,255,0.92)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Img
+                      src={logo}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        objectFit: "contain",
+                      }}
+                    />
+                  </div>
+                ) : null}
+                <div>
+                  <div style={{ fontSize: 44, lineHeight: 1.05 }}>{script.toolName}</div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 27,
+                      lineHeight: 1.25,
+                      color: "rgba(248,251,255,0.78)",
+                    }}
+                  >
+                    {assets.homepage?.title ?? script.coreSellingPoint}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 76, lineHeight: 1.05 }}>{script.toolName}</div>
+              <div
+                style={{
+                  marginTop: 28,
+                  fontSize: 38,
+                  lineHeight: 1.3,
+                  color: palette.muted,
+                }}
+              >
+                {script.coreSellingPoint}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -184,20 +245,16 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
         ))}
       </div>
 
-      <div
-        style={{
-          position: "absolute",
-          bottom: 82,
-          left: 0,
-          width: "100%",
-          textAlign: "center",
-          fontSize: 28,
-          color: "rgba(255,255,255,0.42)",
-        }}
-      >
-        MVP MOCK VIDEO - no account logo / no watermark
-      </div>
     </AbsoluteFill>
   );
 };
 
+function usableImage(source: string | undefined): string | undefined {
+  if (!source || source === "unknown" || source.startsWith("mock://")) {
+    return undefined;
+  }
+  if (source.startsWith("static:")) {
+    return staticFile(source.slice("static:".length));
+  }
+  return source;
+}

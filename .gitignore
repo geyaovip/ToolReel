@@ -3,3 +3,7 @@ outputs/
 .pnpm-store/
 .DS_Store
 *.log
+.env
+.env.local
+.remotion/
+public/remotion-assets/

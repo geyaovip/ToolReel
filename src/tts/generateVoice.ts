@@ -1,24 +1,26 @@
-import { runFfmpeg } from "../utils/ffmpeg.ts";
-import type { ScriptData } from "../types.ts";
+import { dirname, join } from "node:path";
+import { getMiniMaxTtsConfig, generateMiniMaxVoice } from "./minimaxTts.ts";
+import { generateMockVoice } from "./mockVoice.ts";
+import type { ScriptData, VoiceData } from "../types.ts";
+import { writeJson } from "../utils/file.ts";
+import { loadDotEnv } from "../utils/env.ts";
 
-export async function generateVoice(script: ScriptData, outputPath: string): Promise<string> {
-  const totalDuration = script.segments.reduce(
-    (sum, segment) => sum + Math.max(4, Math.min(8, Math.ceil(segment.narration.length / 8))),
-    0,
-  );
+export async function generateVoice(script: ScriptData, outputPath: string): Promise<VoiceData> {
+  await loadDotEnv();
+  const config = getMiniMaxTtsConfig();
+  let voice: VoiceData;
 
-  await runFfmpeg([
-    "-f",
-    "lavfi",
-    "-i",
-    `sine=frequency=420:duration=${totalDuration}:sample_rate=48000`,
-    "-filter:a",
-    "volume=0.035",
-    "-codec:a",
-    "libmp3lame",
-    outputPath,
-  ]);
+  if (!config) {
+    voice = await generateMockVoice(script, outputPath, "MINIMAX_API_KEY is not configured");
+  } else {
+    try {
+      voice = await generateMiniMaxVoice(script, outputPath, config);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown MiniMax TTS error";
+      voice = await generateMockVoice(script, outputPath, message);
+    }
+  }
 
-  return outputPath;
+  await writeJson(join(dirname(outputPath), "voice.json"), voice);
+  return voice;
 }
-

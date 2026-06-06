@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { collectAssets } from "../assets/collectAssets.ts";
 import { generateCover } from "../cover/generateCover.ts";
@@ -7,9 +8,10 @@ import { researchTool } from "../research/researchTool.ts";
 import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
 import { renderRemotionScene } from "../renderers/remotion/renderRemotionScene.ts";
 import { selectRenderer } from "../router/selectRenderer.ts";
+import { writeRunManifest } from "../run/writeRunManifest.ts";
 import { planScenes } from "../scenes/planScenes.ts";
 import { generateScript } from "../script/generateScript.ts";
-import { generateCaptions } from "../subtitles/generateCaptions.ts";
+import { captionsToSrt, generateCaptions } from "../subtitles/generateCaptions.ts";
 import { generateVoice } from "../tts/generateVoice.ts";
 import type { GenerateInput, PipelineResult, PlannedScene, VideoType } from "../types.ts";
 import { ensureDir, writeJson } from "../utils/file.ts";
@@ -39,17 +41,18 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const research = await researchTool(input);
   const script = await generateScript(input, research);
   const assets = await collectAssets(input);
-  const captions = await generateCaptions(script);
-  const voicePath = await generateVoice(script, join(outputDir, "voice.mp3"));
   let scenes = planScenes(script).map((scene) => ({
     ...scene,
     renderer: selectRenderer(scene.type),
   })) satisfies PlannedScene[];
+  const captions = await generateCaptions(scenes);
+  const voice = await generateVoice(script, join(outputDir, "voice.mp3"));
 
   await writeJson(join(outputDir, "research.json"), research);
   await writeJson(join(outputDir, "script.json"), script);
   await writeJson(join(outputDir, "assets.json"), assets);
   await writeJson(join(outputDir, "captions.json"), captions);
+  await writeFile(join(outputDir, "captions.srt"), captionsToSrt(captions), "utf8");
   await writeJson(join(outputDir, "scenes.json"), scenes);
 
   const renderedScenes: PlannedScene[] = [];
@@ -64,12 +67,25 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   await writeJson(join(outputDir, "scenes.json"), scenes);
 
   await generateCover(script, assets, join(outputDir, "cover.png"));
-  const finalVideo = await mergeScenes(scenes, voicePath, join(outputDir, "final.mp4"));
+  const finalVideo = await mergeScenes(scenes, voice.outputPath, join(outputDir, "final.mp4"));
   const validation = await validateOutput(finalVideo);
   await writeJson(join(outputDir, "validation.json"), validation);
 
   const rendererSet = new Set(scenes.map((scene) => scene.renderer));
   const renderMode = rendererSet.size > 1 ? "Hybrid" : scenes[0]?.renderer ?? "Remotion";
+  const runManifest = await writeRunManifest({
+    outputDir,
+    finalVideo,
+    renderMode,
+    input,
+    research,
+    script,
+    assets,
+    captions,
+    voice,
+    scenes,
+    validation,
+  });
 
   return {
     outputDir,
@@ -77,5 +93,6 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     scenes,
     renderMode,
     validation,
+    runManifest,
   };
 }

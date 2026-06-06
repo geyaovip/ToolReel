@@ -23,10 +23,17 @@ ToolReel 的目标是自动生成 AI 工具种草短视频。用户只负责审�
 2. 它解决什么问题
 3. 核心卖点
 4. 适合谁用
-5. 价格或免费版信息
+5. 快速判断是否值得试
 6. 结尾引导
 
-价格和免费版信息必须基于可验证来源。无法确认时使用 `unknown`，不能编造。
+价格和免费版信息可以保留在 research JSON 里，但不作为工具种草短视频的默认板块。无法确认时使用 `unknown`，不能编造。
+
+Research 和脚本结构不应被固定为“介绍、卖点、价格、人群”几类。不同产品的信息结构可以不同：
+
+- 视频脚本默认不生成价格板块，除非未来新增专门的“购买建议/商业评估”视频类型。
+- 优先提炼产品定位、核心功能点、真实亮点、使用场景、官网证据和不确定信息。
+- 官网英文文案进入中文视频前，应转换为自然中文角度，不要直接堆英文原句。
+- 所有亮点都应能追溯到 `sourcePages` 或 `evidence`。
 
 ## 3. 视频类型
 
@@ -77,7 +84,6 @@ Remotion 适合结构化动画和信息卡片：
 
 - 开场标题动画
 - 卖点卡片
-- 价格页
 - 适合人群
 - 工具榜单
 - 多工具对比
@@ -96,7 +102,6 @@ Remotion renderer 需要可用的本地 Chrome 和本地端口。若在受限沙
 - `PROBLEM`
 - `SELLING_POINT`
 - `FEATURE`
-- `PRICING`
 - `TARGET_USER`
 - `WORKFLOW`
 - `CTA`
@@ -133,7 +138,7 @@ HyperFrames 适合网站展示和网页转视频：
 - 最终 MP4 必须使用 `+faststart`，提升 QuickTime 和短视频平台播放器兼容性。
 - 合成后至少抽取第 0 帧检查；必要时使用 `blackdetect` 检测开头 1 秒。
 - 如果直接 copy concat 导致播放器首屏黑屏，应对 `final.mp4` 做一次兼容性重编码。
-- 每次生成必须输出 `validation.json` 和 `first-frame.png`，用于记录媒体规格、起始时间、开头黑帧检查和首帧预览。
+- 每次生成必须输出 `run.json`、`validation.json` 和 `first-frame.png`，用于记录输入、素材、字幕、音轨、场景、媒体规格、起始时间、开头黑帧检查和首帧预览。
 
 分段输出示例：
 
@@ -160,6 +165,19 @@ src/tts/generateVoice.ts
 - 生成 mock voice 或占位音频。
 - 保证后续字幕、渲染、合成步骤可以继续执行。
 
+MiniMax TTS 配置通过 `.env` 或系统环境变量提供：
+
+```text
+MINIMAX_API_KEY=
+MINIMAX_TTS_ENDPOINT=https://api.minimaxi.com/v1/t2a_v2
+MINIMAX_TTS_MODEL=speech-2.8-hd
+MINIMAX_TTS_VOICE_ID=Chinese (Mandarin)_Radio_Host
+```
+
+真实 TTS 和 mock fallback 都必须写出 `voice.mp3` 与 `voice.json`，便于后续校验和排查。
+
+最终合成时必须把 `voice.mp3` 作为 `final.mp4` 的主音轨；不能只生成音频文件但继续使用 scene 内部的静音轨。
+
 ## 8. 字幕规则
 
 字幕必须来自脚本文案和配音时间轴，不依赖人工、剪映或 OCR。
@@ -168,6 +186,7 @@ src/tts/generateVoice.ts
 
 ```text
 captions.json
+captions.srt
 ```
 
 结构示例：
@@ -177,10 +196,14 @@ captions.json
   {
     "start": 0,
     "end": 3.2,
-    "text": "这个AI工具正在改变写代码的方式"
+    "text": "这个AI工具正在改变写代码的方式",
+    "sceneId": "hook",
+    "sceneIndex": 1
   }
 ]
 ```
+
+字幕时间轴必须基于最终 scene 顺序和 scene duration 生成，最后一条字幕的 `end` 应与视频主体时间轴一致。
 
 展示规则：
 
@@ -223,6 +246,24 @@ assets.json
 
 第一阶段可以支持手动配置素材路径，但架构必须预留自动获取官网截图、Logo、产品截图。
 
+当前 MVP 素材采集规则：
+
+- 自动抓取官网 HTML 元信息。
+- 自动用本地 Chrome 生成官网截图。
+- 自动下载官网 icon / Logo 候选。
+- 自动记录官网页面中发现的图片、视频、社交链接候选。
+- 可以通过 `assets.manual.json` 或 `TOOLREEL_MANUAL_ASSETS` 合并人工筛选素材。
+- 推特名人评价、三方视频、官方视频、录屏可以作为人工素材输入，但必须记录真实来源，不要编造背书。
+- 对第三方视频和社交内容，第一阶段只记录候选 URL，不自动下载或二次分发。
+- 官网截图进入视频时应优先使用慢速滚动、推近或重点区域高亮，避免纯静态截图。
+- Remotion 是核心渲染器；Remotion 场景失败时应直接失败并暴露错误，不要静默降级到低质量保底渲染。
+
+手动素材模板见：
+
+```text
+docs/manual-assets.example.json
+```
+
 ## 10. Logo 和水印规则
 
 只允许展示本期推荐工具的品牌 Logo。
@@ -261,11 +302,17 @@ cover.png
 ```text
 outputs/YYYY-MM-DD-tool-slug/
   input.json
+  research.json
   script.json
   assets.json
   captions.json
+  captions.srt
   voice.mp3
+  voice.json
   cover.png
+  run.json
+  validation.json
+  first-frame.png
   scenes/
   final.mp4
 ```

@@ -6,7 +6,7 @@ import { runFfmpeg } from "../utils/ffmpeg.ts";
 
 export async function mergeScenes(
   scenes: PlannedScene[],
-  _voicePath: string,
+  voicePath: string,
   outputPath: string,
 ): Promise<string> {
   const tempDir = await mkdtemp(join(tmpdir(), "toolreel-"));
@@ -21,6 +21,7 @@ export async function mergeScenes(
     .join("\n");
 
   await writeFile(concatPath, `${concatBody}\n`, "utf8");
+  const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 0);
 
   await runFfmpeg([
     "-fflags",
@@ -31,10 +32,18 @@ export async function mergeScenes(
     "0",
     "-i",
     concatPath,
+    "-i",
+    voicePath,
+    "-map",
+    "0:v:0",
+    "-map",
+    "1:a:0",
     "-vf",
     "setpts=PTS-STARTPTS",
     "-af",
     "asetpts=PTS-STARTPTS",
+    "-t",
+    String(totalDuration),
     "-c:v",
     "libx264",
     "-pix_fmt",

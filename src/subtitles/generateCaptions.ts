@@ -2,6 +2,8 @@ import type { Caption, PlannedScene, VoiceData } from "../types.ts";
 
 const FPS = 30;
 const MIN_SCENE_FRAMES = 4 * FPS;
+const PREFERRED_CAPTION_MAX = 18;
+const HARD_CAPTION_MAX = 22;
 
 export function fitSceneDurationsToVoice(scenes: PlannedScene[], voice: VoiceData): PlannedScene[] {
   if (!voice.durationSeconds || !Number.isFinite(voice.durationSeconds)) {
@@ -82,11 +84,19 @@ function splitCaptionText(text: string): string[] {
     .split(/(?<=[。！？!?；;，,、])/)
     .map((chunk) => chunk.trim())
     .filter(Boolean);
-  const chunks = punctuationChunks.length > 1 ? punctuationChunks : chunkByLength(normalized, 18);
-  return mergeShortChunks(mergeDanglingPunctuation(chunks.flatMap((chunk) => chunkByLength(chunk, 18))));
+  const semanticChunks = punctuationChunks.length > 1 ? punctuationChunks : splitBySemanticBoundaries(normalized);
+  return mergeShortChunks(
+    mergeDanglingPunctuation(
+      semanticChunks.flatMap((chunk) => chunkByLength(chunk, PREFERRED_CAPTION_MAX)),
+    ),
+  );
 }
 
 function chunkByLength(text: string, maxChars: number): string[] {
+  if (visualLength(text) <= HARD_CAPTION_MAX) {
+    return [text];
+  }
+
   const tokens = tokenizeCaption(text);
   const chunks: string[] = [];
   let current = "";
@@ -108,6 +118,36 @@ function chunkByLength(text: string, maxChars: number): string[] {
   }
 
   return chunks.length ? chunks : [text];
+}
+
+function splitBySemanticBoundaries(text: string): string[] {
+  if (visualLength(text) <= HARD_CAPTION_MAX) {
+    return [text];
+  }
+
+  const pieces = text
+    .split(/(?=以及|尤其适合|再|就能|但|不过|所以|然后|同时|另外|并)/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  if (pieces.length <= 1) {
+    return [text];
+  }
+
+  const chunks: string[] = [];
+  let current = "";
+  for (const piece of pieces) {
+    const candidate = current ? `${current}${piece}` : piece;
+    if (current && visualLength(candidate) > HARD_CAPTION_MAX) {
+      chunks.push(current);
+      current = piece;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) {
+    chunks.push(current);
+  }
+  return chunks;
 }
 
 function tokenizeCaption(text: string): string[] {

@@ -72,12 +72,53 @@ export type ScriptSegment = {
   bullets?: string[];
 };
 
+export type CreativeAngle = {
+  id: string;
+  title: string;
+  thesis: string;
+  audience: string;
+  hook: string;
+  tone: "practical" | "curious" | "contrarian" | "workflow" | "trust";
+  score: number;
+  proofPoints: string[];
+  watchOuts: string[];
+};
+
+export type CreativeSceneBeat = {
+  sceneType: SceneType;
+  intent: string;
+  visualFocus: string;
+  narrationHint: string;
+  onScreenFocus: string[];
+};
+
+export type CoverIdea = {
+  title: string;
+  subtitle: string;
+  rationale: string;
+};
+
+export type CreativeBrief = {
+  toolName: string;
+  generatedAt: string;
+  selectedAngle: CreativeAngle;
+  candidateAngles: CreativeAngle[];
+  sceneBeats: CreativeSceneBeat[];
+  coverIdeas: CoverIdea[];
+};
+
 export type ScriptData = {
   toolName: string;
   videoType: VideoType;
   hook: string;
   coreSellingPoint: string;
   segments: ScriptSegment[];
+  creative?: {
+    angleId: string;
+    angleTitle: string;
+    coverTitle: string;
+    coverSubtitle: string;
+  };
 };
 
 export type AssetData = {
@@ -170,6 +211,7 @@ export type RunManifest = {
   files: {
     input: string;
     research: string;
+    creative: string;
     script: string;
     assets: string;
     captions: string;

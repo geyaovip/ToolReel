@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { collectAssets } from "../assets/collectAssets.ts";
 import { generateCover } from "../cover/generateCover.ts";
+import { generateCreativeBrief } from "../creative/generateCreativeBrief.ts";
 import { mergeScenes } from "../merge/mergeScenes.ts";
 import { validateOutput } from "../quality/validateOutput.ts";
 import { validateVisibleText } from "../quality/validateVisibleText.ts";
@@ -40,7 +41,8 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   await writeJson(join(outputDir, "input.json"), input);
 
   const research = await researchTool(input);
-  const script = await generateScript(input, research);
+  const creative = await generateCreativeBrief(input, research);
+  const script = await generateScript(input, research, creative);
   const assets = await collectAssets(input);
   let scenes = planScenes(script).map((scene) => ({
     ...scene,
@@ -51,6 +53,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const captions = await generateCaptions(scenes);
 
   await writeJson(join(outputDir, "research.json"), research);
+  await writeJson(join(outputDir, "creative.json"), creative);
   await writeJson(join(outputDir, "script.json"), script);
   await writeJson(join(outputDir, "assets.json"), assets);
   await writeJson(join(outputDir, "captions.json"), captions);
@@ -83,6 +86,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     renderMode,
     input,
     research,
+    creative,
     script,
     assets,
     captions,

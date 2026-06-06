@@ -76,6 +76,20 @@ manual asset file with:
 TOOLREEL_MANUAL_ASSETS=/absolute/path/to/assets.manual.json
 ```
 
+## Creative Direction
+
+After research, ToolReel writes an automatic creative direction artifact:
+
+```text
+outputs/YYYY-MM-DD-cursor/creative.json
+```
+
+This layer acts like an automated short-video producer. It scores a few content
+angles from researched facts, selects one angle without asking for a manual
+choice, then feeds the self-media style voice script, scene beats, and cover
+title. It must not invent product claims; it can only reframe verified research
+into a stronger recommendation angle.
+
 Remotion rendering uses a local headless Chrome process and an available local render port. On macOS, the MVP uses `scripts/remotion-chrome-wrapper.sh` by default so Chrome runs with a clean local profile and crash reporting disabled. Override it only when you need a specific browser binary:
 
 ```text
@@ -131,4 +145,4 @@ outputs/YYYY-MM-DD-cursor/first-frame.png
 
 ## MVP Scope
 
-This stage uses real first-pass official-site research, dynamic script planning, real first-pass asset collection, MiniMax TTS, and a HyperFrames website-demo scene. Remotion is the core renderer for structured scenes. The pipeline shape is real: CLI input, JSON artifacts, research, asset collection, scene planning, renderer routing, scene MP4 output, cover image, validation, and final MP4 merge.
+This stage uses real first-pass official-site research, automatic creative direction, dynamic self-media script planning, real first-pass asset collection, MiniMax TTS, and a HyperFrames website-demo scene. Remotion is the core renderer for structured scenes. The pipeline shape is real: CLI input, JSON artifacts, research, creative direction, asset collection, scene planning, renderer routing, scene MP4 output, cover image, validation, and final MP4 merge.

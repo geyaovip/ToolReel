@@ -32,6 +32,8 @@ async function generateCoverFromScreenshot(
 ): Promise<void> {
   const subtitle = script.segments.find((segment) => segment.sceneType === "SELLING_POINT")?.title
     ?? script.coreSellingPoint;
+  const title = script.creative?.coverTitle ?? script.toolName;
+  const kicker = script.creative?.coverSubtitle ?? "一分钟看懂这个 AI 工具";
   const filter = [
     `scale=w=${VIDEO_WIDTH}:h=${VIDEO_HEIGHT}:force_original_aspect_ratio=increase`,
     `crop=${VIDEO_WIDTH}:${VIDEO_HEIGHT}`,
@@ -40,9 +42,9 @@ async function generateCoverFromScreenshot(
     "drawbox=x=0:y=0:w=1080:h=1920:color=0x07111f@0.38:t=fill",
     "drawbox=x=80:y=112:w=920:h=10:color=0x8df5c5@0.96:t=fill",
     "drawbox=x=88:y=420:w=904:h=620:color=black@0.44:t=fill",
-    draw(script.toolName, 520, script.toolName.length > 10 ? 86 : 104),
+    draw(title, 520, title.length > 12 ? 68 : 88),
     draw(subtitle, 700, subtitle.length > 18 ? 48 : 58),
-    draw("一分钟看懂这个 AI 工具", 1220, 58),
+    draw(kicker, 1220, kicker.length > 14 ? 50 : 58),
   ].join(",");
 
   await runFfmpeg(["-y", "-i", screenshotPath, "-vf", filter, "-frames:v", "1", outputPath]);
@@ -54,9 +56,9 @@ async function generateFallbackCover(script: ScriptData, outputPath: string): Pr
     "format=yuv420p",
     "drawbox=x=80:y=96:w=920:h=10:color=0x8df5c5@0.96:t=fill",
     "drawbox=x=112:y=360:w=856:h=640:color=white@0.08:t=fill",
-    draw(script.toolName, 520, 92),
+    draw(script.creative?.coverTitle ?? script.toolName, 520, 78),
     draw(script.coreSellingPoint, 700, 48),
-    draw("AI 工具种草", 1210, 56),
+    draw(script.creative?.coverSubtitle ?? "AI 工具种草", 1210, 56),
   ].join(",");
 
   await runFfmpeg(["-f", "lavfi", "-i", filter, "-frames:v", "1", outputPath]);

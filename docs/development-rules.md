@@ -125,6 +125,35 @@ HyperFrames 适合网站展示和网页转视频：
 - `LANDING_PAGE_DEMO`
 - `PRODUCT_PAGE_SCROLL`
 
+## 5.5 Creative 编导规则
+
+建议文件：
+
+```text
+src/creative/generateCreativeBrief.ts
+```
+
+Creative 层位于 research 之后、script/scenes/cover 之前。它承担自动编导职责：
+
+- 自动选择一个最适合本期视频的种草角度，不把多个选项交给用户手动选择。
+- 输出 `creative.json`，记录候选角度、最终选择、分镜意图和封面标题方案，便于审计。
+- 口播脚本必须是自媒体判断口吻，不要写成生硬的产品介绍或官网功能清单。
+- 所有角度、判断、封面标题都必须基于 research 已拿到的事实和证据，不得编造价格、评价、排名、用户结果或未验证功能。
+- Creative 层可以借鉴 Creative Production 的 positioning、scene、ads 思路，但在 CLI MVP 中必须自动决策并继续执行 pipeline。
+
+推荐输出：
+
+```text
+outputs/YYYY-MM-DD-cursor/creative.json
+```
+
+`creative.json` 至少包含：
+
+- `selectedAngle`：最终选中的内容角度。
+- `candidateAngles`：少量候选和分数，仅用于审计。
+- `sceneBeats`：每个镜头的意图、画面重点和口播提示。
+- `coverIdeas`：封面标题和副标题方案。
+
 ## 6. 渲染和合成规则
 
 - 每个 Scene 单独渲染为 MP4。

@@ -2,6 +2,7 @@ import { join } from "node:path";
 import type {
   AssetData,
   Caption,
+  CreativeBrief,
   GenerateInput,
   OutputValidation,
   PlannedScene,
@@ -18,6 +19,7 @@ type WriteRunManifestArgs = {
   renderMode: RunManifest["renderMode"];
   input: GenerateInput;
   research: ResearchResult;
+  creative: CreativeBrief;
   script: ScriptData;
   assets: AssetData;
   captions: Caption[];
@@ -38,6 +40,7 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
     files: {
       input: join(args.outputDir, "input.json"),
       research: join(args.outputDir, "research.json"),
+      creative: join(args.outputDir, "creative.json"),
       script: join(args.outputDir, "script.json"),
       assets: join(args.outputDir, "assets.json"),
       captions: join(args.outputDir, "captions.json"),
@@ -74,6 +77,7 @@ function collectWarnings(args: WriteRunManifestArgs): string[] {
     ...(args.assets.notes ?? []).map((note) => `Asset note: ${note}`),
     ...(args.research.notes ?? []).map((note) => `Research note: ${note}`),
     ...(args.research.unknowns ?? []).map((unknown) => `Research unknown: ${unknown}`),
+    `Creative angle: ${args.creative.selectedAngle.title}`,
     ...args.validation.checks
       .filter((check) => !check.passed)
       .map((check) => `Validation failed: ${check.name}`),

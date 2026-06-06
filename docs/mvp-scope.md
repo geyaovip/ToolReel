@@ -23,16 +23,18 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 3. 预留 HyperFrames 渲染模块。
 4. 实现 CLI 输入。
 5. 生成 `input.json`。
-6. 基于官网 research 生成动态 `script.json`。
-7. 生成自动采集版 `assets.json`，至少包含官网截图、Logo 候选和外部素材候选。
-8. 生成与 scene 时间轴对齐的 `captions.json` 和 `captions.srt`。
-9. 生成 `voice.mp3`，并在最终合成时作为 `final.mp4` 的主音轨。
-10. 自动规划 scenes。
-11. 自动选择每个 scene 的 renderer。
-12. Remotion 能通过真实 composition 渲染至少 3 类 Scene：`HOOK`、`SELLING_POINT`、`CTA`。
-13. HyperFrames 模块先预留 `WEBSITE_DEMO`。
-14. 最终用 FFmpeg 合并片段。
-15. 输出 `final.mp4`。
+6. 基于官网 research 生成 `research.json`。
+7. 自动生成 `creative.json`，选择本期种草角度、分镜意图和封面标题方案。
+8. 基于 research 和 creative 生成动态 `script.json`，口播应更接近自媒体判断，不是官网功能清单。
+9. 生成自动采集版 `assets.json`，至少包含官网截图、Logo 候选和外部素材候选。
+10. 生成与 scene 时间轴对齐的 `captions.json` 和 `captions.srt`。
+11. 生成真实 TTS `voice.mp3`，并在最终合成时作为 `final.mp4` 的主音轨。
+12. 自动规划 scenes。
+13. 自动选择每个 scene 的 renderer。
+14. Remotion 能通过真实 composition 渲染至少 3 类 Scene：`HOOK`、`SELLING_POINT`、`CTA`。
+15. HyperFrames 模块先预留 `WEBSITE_DEMO`。
+16. 最终用 FFmpeg 合并片段。
+17. 输出 `final.mp4`。
 
 ## 可以 mock 的部分
 
@@ -57,7 +59,6 @@ mock 数据也必须符合真实数据结构，方便后续替换。
 - 支付或订阅。
 - 多用户任务队列。
 - 复杂素材库。
-- 真实 MiniMax TTS 强依赖。
 - 真实网页自动截图强依赖。
 - HyperFrames 深度网站转视频能力。
 
@@ -70,7 +71,7 @@ mock 数据也必须符合真实数据结构，方便后续替换。
 - 官网截图占位。
 - 3 个卖点。
 - 大字字幕。
-- 配音占位或真实配音。
+- 真实 TTS 配音。
 - 结尾 CTA。
 
 生成的视频不得包含：

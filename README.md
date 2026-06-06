@@ -12,7 +12,8 @@ pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"
 ## TTS
 
 The pipeline uses MiniMax TTS when `MINIMAX_API_KEY` is configured. Without a key,
-it falls back to the local mock voice so the MVP pipeline can still finish.
+it falls back to macOS `say` local speech so the MVP pipeline can still finish
+with a spoken audio track instead of a test tone.
 
 ```bash
 cp .env.example .env
@@ -23,6 +24,13 @@ Then fill:
 ```text
 MINIMAX_API_KEY=your_api_key
 MINIMAX_TTS_VOICE_ID=Chinese (Mandarin)_Radio_Host
+```
+
+Optional local fallback controls:
+
+```text
+TOOLREEL_LOCAL_TTS_VOICE=Reed (中文（中国大陆）)
+TOOLREEL_LOCAL_TTS_RATE=185
 ```
 
 TTS output metadata is written to:

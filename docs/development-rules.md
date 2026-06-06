@@ -162,7 +162,8 @@ src/tts/generateVoice.ts
 优先支持 MiniMax TTS。没有 API Key 时：
 
 - 不要让 pipeline 报错中断。
-- 生成 mock voice 或占位音频。
+- macOS 本地开发优先生成 `say` 人声 fallback，不要把蜂鸣、正弦波或电流测试音混入 `final.mp4`。
+- 只有在明确测试音频链路时才允许生成 mock tone，且不得作为默认最终视频音轨。
 - 保证后续字幕、渲染、合成步骤可以继续执行。
 
 MiniMax TTS 配置通过 `.env` 或系统环境变量提供：
@@ -172,9 +173,11 @@ MINIMAX_API_KEY=
 MINIMAX_TTS_ENDPOINT=https://api.minimaxi.com/v1/t2a_v2
 MINIMAX_TTS_MODEL=speech-2.8-hd
 MINIMAX_TTS_VOICE_ID=Chinese (Mandarin)_Radio_Host
+TOOLREEL_LOCAL_TTS_VOICE=Reed (中文（中国大陆）)
+TOOLREEL_LOCAL_TTS_RATE=185
 ```
 
-真实 TTS 和 mock fallback 都必须写出 `voice.mp3` 与 `voice.json`，便于后续校验和排查。
+真实 TTS 和 fallback 都必须写出 `voice.mp3` 与 `voice.json`，便于后续校验和排查。`voice.json.provider` 必须准确标记 `minimax`、`local_say` 或 `mock`。
 
 最终合成时必须把 `voice.mp3` 作为 `final.mp4` 的主音轨；不能只生成音频文件但继续使用 scene 内部的静音轨。
 

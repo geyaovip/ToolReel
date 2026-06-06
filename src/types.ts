@@ -126,7 +126,7 @@ export type Caption = {
   sceneIndex?: number;
 };
 
-export type VoiceProvider = "minimax" | "mock";
+export type VoiceProvider = "minimax" | "local_say" | "mock";
 
 export type VoiceData = {
   provider: VoiceProvider;

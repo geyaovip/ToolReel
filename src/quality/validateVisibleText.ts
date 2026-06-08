@@ -19,12 +19,21 @@ export function validateVisibleText(
   captions: Caption[],
 ): OutputValidationCheck[] {
   const visibleText = collectVisibleText(script, scenes, captions);
+  const scenesMissingCreativeGuidance = scenes.filter(
+    (scene) => !scene.intent || !scene.visualFocus || !(scene.onScreenFocus?.length),
+  );
   return [
     {
       name: "noForbiddenVisibleText",
       passed: visibleText.violations.length === 0,
       actual: visibleText.violations.join(" | ") || "none",
       expected: "no ellipsis, unknown placeholders, internal template labels, or incomplete fallback text",
+    },
+    {
+      name: "sceneGuidancePresent",
+      passed: scenesMissingCreativeGuidance.length === 0,
+      actual: scenesMissingCreativeGuidance.map((scene) => scene.id).join(", ") || "all scenes guided",
+      expected: "every scene has intent, visualFocus, and onScreenFocus for rendering",
     },
   ];
 }
@@ -47,6 +56,8 @@ function collectVisibleText(
       scene.type === "WEBSITE_DEMO" ? "" : scene.title,
       scene.narration,
       ...scene.bullets,
+      scene.visualFocus ?? "",
+      ...(scene.onScreenFocus ?? []),
     ]),
     ...captions.map((caption) => caption.text),
   ].filter(Boolean);

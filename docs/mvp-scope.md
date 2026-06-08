@@ -20,7 +20,7 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 
 1. 初始化 TypeScript 项目。
 2. 初始化 Remotion。
-3. 预留 HyperFrames 渲染模块。
+3. 预留 HyperFrames 渲染模块，并能渲染 `WEBSITE_DEMO` 测试场景。
 4. 实现 CLI 输入。
 5. 生成 `input.json`。
 6. 基于官网 research 生成 `research.json`。
@@ -32,7 +32,7 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 12. 自动规划 scenes。
 13. 自动选择每个 scene 的 renderer。
 14. Remotion 能通过真实 composition 渲染至少 3 类 Scene：`HOOK`、`SELLING_POINT`、`CTA`。
-15. HyperFrames 模块先预留 `WEBSITE_DEMO`。
+15. HyperFrames 模块能处理 `WEBSITE_DEMO`，失败时记录原因，不生成误导性假画面。
 16. 最终用 FFmpeg 合并片段。
 17. 输出 `final.mp4`。
 
@@ -42,9 +42,7 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 - 脚本文案。
 - 素材清单。
 - Logo 路径。
-- 官网截图路径。
 - 产品截图路径。
-- HyperFrames 实际渲染。
 
 mock 数据也必须符合真实数据结构，方便后续替换。
 
@@ -59,7 +57,6 @@ mock 数据也必须符合真实数据结构，方便后续替换。
 - 支付或订阅。
 - 多用户任务队列。
 - 复杂素材库。
-- 真实网页自动截图强依赖。
 - HyperFrames 深度网站转视频能力。
 
 ## 最低视频内容
@@ -67,9 +64,9 @@ mock 数据也必须符合真实数据结构，方便后续替换。
 生成的测试视频至少包含：
 
 - 开场标题。
-- 工具 Logo 或 Logo 占位。
-- 官网截图占位。
-- 3 个卖点。
+- 工具 Logo 或干净的工具名展示。
+- 官网截图、官网展示场景或明确的非误导性替代画面。
+- 3 个核心信息点。
 - 大字字幕。
 - 真实 TTS 配音。
 - 结尾 CTA。
@@ -115,7 +112,8 @@ MVP 完成后，用户应能做到：
 4. 在同一目录看到 `final.mp4`。
 5. 在同一目录看到 `validation.json` 和 `first-frame.png`。
 6. 在同一目录看到 `run.json`，可快速排查输入、素材、字幕、音轨、场景、校验状态。
-7. 打开 `final.mp4` 后能看见竖屏短视频，且至少包含开场、卖点、官网展示占位、字幕、配音占位和 CTA。
+7. 打开 `final.mp4` 后能看见竖屏短视频，且至少包含开场、核心信息、官网展示、字幕、真实配音和 CTA。
+8. `validation.json` 必须检查官网或产品截图是否可用，避免官网展示场景退化成纯文字画面。
 
 ## 后续版本
 
@@ -125,6 +123,6 @@ MVP 跑通后，不在本文件继续扩展详细需求。后续版本拆分到�
 2. [v1.2 Assets and HyperFrames](./versions/v1.2-assets-hyperframes.md)：素材采集、官网录屏、HyperFrames 网页展示。
 3. [v1.3 Visual Quality](./versions/v1.3-visual-quality.md)：Remotion 模板、字幕、封面和自动质检。
 4. [v1.4 Video Types](./versions/v1.4-video-types.md)：教程、对比、榜单、更新速递等视频类型。
-5. [v1.5 Productization](./versions/v1.5-productization.md)：任务化、审核流、批量生产和产品化界面。
+5. [v1.5 Optional Productization](./versions/v1.5-productization.md)：暂缓；仅在 CLI + Codex 工作流不够用时再做任务化和界面。
 
 总览见 [Version Roadmap](./version-roadmap.md)。

@@ -5,6 +5,7 @@ import { generateCover } from "../cover/generateCover.ts";
 import { generateCreativeBrief } from "../creative/generateCreativeBrief.ts";
 import { mergeScenes } from "../merge/mergeScenes.ts";
 import { validateOutput } from "../quality/validateOutput.ts";
+import { validateAssetsForMvp } from "../quality/validateAssets.ts";
 import { validateVisibleText } from "../quality/validateVisibleText.ts";
 import { researchTool } from "../research/researchTool.ts";
 import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
@@ -44,7 +45,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const creative = await generateCreativeBrief(input, research);
   const script = await generateScript(input, research, creative);
   const assets = await collectAssets(input);
-  let scenes = planScenes(script).map((scene) => ({
+  let scenes = planScenes(script, creative).map((scene) => ({
     ...scene,
     renderer: selectRenderer(scene.type),
   })) satisfies PlannedScene[];
@@ -74,6 +75,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   await generateCover(script, assets, join(outputDir, "cover.png"));
   const finalVideo = await mergeScenes(scenes, voice.outputPath, join(outputDir, "final.mp4"));
   const validation = await validateOutput(finalVideo);
+  validation.checks.push(...validateAssetsForMvp(assets));
   validation.checks.push(...validateVisibleText(script, scenes, captions));
   validation.passed = validation.checks.every((item) => item.passed);
   await writeJson(join(outputDir, "validation.json"), validation);

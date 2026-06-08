@@ -169,6 +169,7 @@ outputs/YYYY-MM-DD-cursor/creative.json
 - 合成后至少抽取第 0 帧检查；必要时使用 `blackdetect` 检测开头 1 秒。
 - 如果直接 copy concat 导致播放器首屏黑屏，应对 `final.mp4` 做一次兼容性重编码。
 - 每次生成必须输出 `run.json`、`validation.json` 和 `first-frame.png`，用于记录输入、素材、字幕、音轨、场景、媒体规格、起始时间、开头黑帧检查和首帧预览。
+- MVP 校验必须检查官网或产品视觉素材是否可用，避免 `WEBSITE_DEMO` 退化成纯文字画面。
 
 分段输出示例：
 

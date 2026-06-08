@@ -18,10 +18,12 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
   const homepageUrl = normalizeUrl(input.url);
   const html = await fetchHomepageHtml(homepageUrl, notes);
   const metadata = html ? extractPageMetadata(html, homepageUrl) : undefined;
+  const existingScreenshot =
+    existingUsablePath(existing?.websiteScreenshot) || existingFile(join(assetsDir, "homepage.png"));
   const screenshotPath =
-    (await tryCaptureScreenshot(homepageUrl, join(assetsDir, "homepage.png"), notes)) ||
-    existingUsablePath(existing?.websiteScreenshot) ||
-    existingFile(join(assetsDir, "homepage.png"));
+    (shouldRefreshAssets() || !existingScreenshot
+      ? await tryCaptureScreenshot(homepageUrl, join(assetsDir, "homepage.png"), notes, Boolean(existingScreenshot))
+      : existingScreenshot) || existingScreenshot;
   const logoPath =
     (await tryDownloadFirst(metadata?.iconUrls ?? [], assetsDir, `${input.name}-logo`, notes)) ||
     existingUsablePath(existing?.logo) ||
@@ -151,11 +153,16 @@ async function tryCaptureScreenshot(
   url: string,
   outputPath: string,
   notes: string[],
+  hasExistingScreenshot: boolean,
 ): Promise<string | undefined> {
   try {
     return await captureWebsiteScreenshot(url, outputPath);
   } catch (error) {
-    notes.push(`Homepage screenshot failed: ${messageOf(error)}`);
+    notes.push(
+      hasExistingScreenshot
+        ? `Homepage screenshot refresh skipped after capture error; reused existing screenshot.`
+        : `Homepage screenshot failed: ${messageOf(error)}`,
+    );
     return undefined;
   }
 }
@@ -205,6 +212,10 @@ function existingUsablePath(path: string | undefined): string | undefined {
 
 function existingFile(path: string): string | undefined {
   return existsSync(path) ? path : undefined;
+}
+
+function shouldRefreshAssets(): boolean {
+  return process.env.TOOLREEL_REFRESH_ASSETS === "1";
 }
 
 function messageOf(error: unknown): string {

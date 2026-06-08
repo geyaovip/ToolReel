@@ -19,7 +19,7 @@
 | v1.2 | 素材与 HyperFrames 增强 | 提升官网、产品页面、录屏和外部素材的真实感 |
 | v1.3 | 视觉与字幕质量增强 | 提升 Remotion 模板、字幕、封面和自动质检 |
 | v1.4 | 多视频类型扩展 | 支持榜单、对比、教程、更新速递等内容形态 |
-| v1.5 | 产品化与批量生产 | 从 CLI 走向任务化、审核流和批量生产能力 |
+| v1.5 | 可选产品化 | 仅在 CLI + Codex 工作流不够用时，再考虑任务化和审核界面 |
 
 ## 推荐推进顺序
 
@@ -28,7 +28,7 @@
 3. 开发 v1.2，把 HyperFrames 和素材采集接入真实镜头质量提升。
 4. 开发 v1.3，补视觉模板、封面和质量评估。
 5. 单工具视频稳定后，再进入 v1.4 多类型扩展。
-6. 最后做 v1.5 产品化，不提前引入复杂后台。
+6. v1.5 暂缓；只在个人 CLI + Codex 工作流无法支撑时再启动产品化。
 
 ## 版本文档
 
@@ -37,5 +37,4 @@
 - [v1.2 Assets and HyperFrames](./versions/v1.2-assets-hyperframes.md)
 - [v1.3 Visual Quality](./versions/v1.3-visual-quality.md)
 - [v1.4 Video Types](./versions/v1.4-video-types.md)
-- [v1.5 Productization](./versions/v1.5-productization.md)
-
+- [v1.5 Optional Productization](./versions/v1.5-productization.md)

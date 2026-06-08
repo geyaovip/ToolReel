@@ -1,6 +1,6 @@
 # ToolReel
 
-ToolReel is an MVP CLI pipeline for generating AI tool recommendation short videos.
+ToolReel is an MVP CLI pipeline for generating AI tool explainer short videos.
 
 ## Run
 

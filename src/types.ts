@@ -186,6 +186,9 @@ export type PlannedScene = {
   title: string;
   narration: string;
   bullets: string[];
+  intent?: string;
+  visualFocus?: string;
+  onScreenFocus?: string[];
   duration: number;
   renderer?: RendererName;
   outputPath?: string;

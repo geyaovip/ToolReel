@@ -25,6 +25,23 @@ function bulletLines(text: string): string[] {
   return lines.slice(0, 2);
 }
 
+function focusLabel(scene: ToolReelSceneProps["scene"]): string {
+  const focus = scene.visualFocus?.replace(/[.…]+$/g, "").trim();
+  if (focus && focus.length <= 18) {
+    return focus;
+  }
+  if (scene.type === "WEBSITE_DEMO") {
+    return "官网主打信息";
+  }
+  if (scene.type === "WORKFLOW") {
+    return "真实使用场景";
+  }
+  if (scene.type === "CTA") {
+    return "记住这个工具";
+  }
+  return "核心信息";
+}
+
 const baseStyles = {
   fontFamily:
     '"Hiragino Sans GB", "STHeiti", "PingFang SC", "Arial Unicode MS", Arial, sans-serif',
@@ -71,6 +88,24 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
           opacity: fade,
         }}
       />
+
+      <div
+        style={{
+          position: "absolute",
+          top: 106,
+          right: 72,
+          maxWidth: 470,
+          padding: "9px 18px",
+          background: "rgba(255,255,255,0.10)",
+          color: "rgba(248,251,255,0.82)",
+          fontSize: 26,
+          lineHeight: 1.15,
+          textAlign: "right",
+          opacity: fade,
+        }}
+      >
+        {focusLabel(scene)}
+      </div>
 
       <div
         style={{
@@ -201,7 +236,7 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
       </div>
 
       <div style={{ position: "absolute", top: 910, left: 128, width: 824 }}>
-        {scene.bullets
+        {(scene.onScreenFocus?.length ? scene.onScreenFocus : scene.bullets)
           .map((bullet) => ({ bullet, lines: bulletLines(bullet) }))
           .filter((item) => item.lines.length)
           .slice(0, 3)

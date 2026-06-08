@@ -51,6 +51,7 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
       cover: join(args.outputDir, "cover.png"),
       finalVideo: args.finalVideo,
       validation: join(args.outputDir, "validation.json"),
+      mvpReadiness: join(args.outputDir, "mvp-readiness.json"),
     },
     summary: {
       toolName: args.script.toolName,

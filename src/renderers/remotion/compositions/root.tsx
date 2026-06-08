@@ -29,7 +29,7 @@ const defaultProps: ToolReelSceneProps = {
     toolName: "ToolReel",
     videoType: "product_pick",
     hook: "这个 AI 工具正在改变很多人的工作方式。",
-    coreSellingPoint: "让 AI 工具种草视频自动生成。",
+    coreSellingPoint: "让 AI 工具科普视频自动生成。",
     segments: [],
   },
   assets: {

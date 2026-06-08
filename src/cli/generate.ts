@@ -65,6 +65,12 @@ async function main(): Promise<void> {
     console.log(`校验报告：${result.outputDir}/validation.json`);
     console.log(`首帧预览：${result.validation.firstFramePath}`);
   }
+  if (result.mvpReadiness) {
+    console.log("");
+    console.log("MVP readiness：");
+    console.log(result.mvpReadiness.ready ? "ready" : "not ready");
+    console.log(`${result.outputDir}/mvp-readiness.json`);
+  }
 }
 
 main()

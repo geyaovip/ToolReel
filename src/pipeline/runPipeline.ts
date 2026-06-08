@@ -6,6 +6,7 @@ import { generateCreativeBrief } from "../creative/generateCreativeBrief.ts";
 import { mergeScenes } from "../merge/mergeScenes.ts";
 import { validateOutput } from "../quality/validateOutput.ts";
 import { validateAssetsForMvp } from "../quality/validateAssets.ts";
+import { checkMvpReadiness } from "../quality/checkMvpReadiness.ts";
 import { validateVisibleText } from "../quality/validateVisibleText.ts";
 import { researchTool } from "../research/researchTool.ts";
 import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
@@ -96,6 +97,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     scenes,
     validation,
   });
+  const mvpReadiness = await checkMvpReadiness(outputDir);
 
   return {
     outputDir,
@@ -104,5 +106,6 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     renderMode,
     validation,
     runManifest,
+    mvpReadiness,
   };
 }

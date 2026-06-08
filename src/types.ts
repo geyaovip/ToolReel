@@ -234,6 +234,7 @@ export type PipelineResult = {
   renderMode: "Remotion" | "HyperFrames" | "Hybrid";
   validation?: OutputValidation;
   runManifest?: RunManifest;
+  mvpReadiness?: MvpReadiness;
 };
 
 export type RunManifest = {
@@ -258,6 +259,7 @@ export type RunManifest = {
     cover: string;
     finalVideo: string;
     validation: string;
+    mvpReadiness: string;
   };
   summary: {
     toolName: string;
@@ -295,4 +297,28 @@ export type OutputValidation = {
     audioSampleRate?: number;
   };
   checks: OutputValidationCheck[];
+};
+
+export type MvpReadiness = {
+  schemaVersion: 1;
+  inspectedAt: string;
+  outputDir: string;
+  ready: boolean;
+  summary: {
+    finalVideo: string;
+    durationSeconds?: number;
+    renderMode: RunManifest["renderMode"];
+    voiceProvider: VoiceProvider;
+    sceneCount: number;
+    captionCount: number;
+    researchSourcePageCount: number;
+    pageCandidateCount: number;
+    scoredCandidateCount: number;
+  };
+  checks: OutputValidationCheck[];
+  deferred: Array<{
+    item: string;
+    reason: string;
+    targetVersion: string;
+  }>;
 };

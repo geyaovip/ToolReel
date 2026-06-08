@@ -147,7 +147,14 @@ The pipeline also writes a media validation report:
 ```text
 outputs/YYYY-MM-DD-cursor/run.json
 outputs/YYYY-MM-DD-cursor/validation.json
+outputs/YYYY-MM-DD-cursor/mvp-readiness.json
 outputs/YYYY-MM-DD-cursor/first-frame.png
+```
+
+Check an existing run:
+
+```bash
+pnpm mvp:check outputs/YYYY-MM-DD-cursor
 ```
 
 ## MVP Scope

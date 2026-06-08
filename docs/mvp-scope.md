@@ -111,7 +111,7 @@ MVP 完成后，用户应能做到：
 3. 在 `outputs/YYYY-MM-DD-cursor/` 看到完整中间产物。
 4. 在同一目录看到 `final.mp4`。
 5. 在同一目录看到 `validation.json` 和 `first-frame.png`。
-6. 在同一目录看到 `run.json`，可快速排查输入、素材、字幕、音轨、场景、校验状态。
+6. 在同一目录看到 `run.json` 和 `mvp-readiness.json`，可快速排查输入、素材、字幕、音轨、场景、校验状态和 MVP ready 状态。
 7. 打开 `final.mp4` 后能看见竖屏短视频，且至少包含开场、核心信息、官网展示、字幕、真实配音和 CTA。
 8. `validation.json` 必须检查官网或产品截图是否可用，避免官网展示场景退化成纯文字画面。
 
@@ -126,3 +126,5 @@ MVP 跑通后，不在本文件继续扩展详细需求。后续版本拆分到�
 5. [v1.5 Optional Productization](./versions/v1.5-productization.md)：暂缓；仅在 CLI + Codex 工作流不够用时再做任务化和界面。
 
 总览见 [Version Roadmap](./version-roadmap.md)。
+
+MVP 最终完成判断见 [MVP Readiness](./mvp-readiness.md)。

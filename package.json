@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "AI tool recommendation short-video automation pipeline",
+  "description": "AI tool explainer short-video automation pipeline",
   "scripts": {
     "postinstall": "node --experimental-strip-types scripts/install-git-hooks.ts",
     "generate": "node --experimental-strip-types src/cli/generate.ts",
     "check": "node --experimental-strip-types --check src/cli/generate.ts",
+    "mvp:check": "node --experimental-strip-types scripts/check-mvp-readiness.ts",
     "commit:message": "node --experimental-strip-types scripts/commit-message.ts",
     "tts:preview": "node --experimental-strip-types scripts/preview-voices.ts"
   },

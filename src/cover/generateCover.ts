@@ -1,4 +1,4 @@
-import type { AssetData, ScriptData } from "../types.ts";
+import type { AssetData, CoverData, ScriptData } from "../types.ts";
 import { FONT_FILE, VIDEO_HEIGHT, VIDEO_WIDTH } from "../config.ts";
 import { runFfmpeg } from "../utils/ffmpeg.ts";
 import { escapeDrawText } from "../utils/text.ts";
@@ -11,18 +11,45 @@ export async function generateCover(
   script: ScriptData,
   assets: AssetData,
   outputPath: string,
-): Promise<string> {
+): Promise<CoverData> {
   if (assets.websiteScreenshot && assets.websiteScreenshot !== "unknown") {
     try {
       await generateCoverFromScreenshot(script, assets.websiteScreenshot, outputPath);
-      return outputPath;
+      return coverData(script, outputPath);
     } catch {
       // Fall back to a generated cover when the screenshot cannot be decoded.
     }
   }
 
   await generateFallbackCover(script, outputPath);
-  return outputPath;
+  return coverData(script, outputPath);
+}
+
+function coverData(script: ScriptData, outputPath: string): CoverData {
+  const selected = {
+    title: script.creative?.coverTitle ?? script.toolName,
+    subtitle: script.creative?.coverSubtitle ?? "一分钟讲清楚",
+    rationale: "自动选择默认封面方案。",
+  };
+  return {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    selected,
+    ideas: [
+      selected,
+      {
+        title: `${script.toolName} 是干啥的`,
+        subtitle: "先看核心场景",
+        rationale: "科普型封面，用于快速建立产品认知。",
+      },
+      {
+        title: `${script.toolName} 值得试吗`,
+        subtitle: "看场景再决定",
+        rationale: "判断型封面，用于强调试用决策。",
+      },
+    ],
+    outputPath,
+  };
 }
 
 async function generateCoverFromScreenshot(

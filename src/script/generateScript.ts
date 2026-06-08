@@ -11,6 +11,35 @@ export async function generateScript(
   const hook = buildHook(input.name, research, creative);
   const coreSellingPoint = research.positioning || research.summary;
   const selectedAngle = creative.selectedAngle;
+  const base = {
+    toolName: input.name,
+    videoType: input.type,
+    hook,
+    coreSellingPoint,
+    creative: {
+      angleId: creative.selectedAngle.id,
+      angleTitle: creative.selectedAngle.title,
+      coverTitle: creative.coverIdeas[0]?.title ?? `${input.name} 值得试吗`,
+      coverSubtitle: creative.coverIdeas[0]?.subtitle ?? "一分钟讲清楚",
+    },
+  };
+
+  if (input.type === "tutorial") {
+    return { ...base, segments: tutorialSegments(input, research, highlights, useCases, hook).slice(0, 7) };
+  }
+  if (input.type === "comparison") {
+    return { ...base, segments: comparisonSegments(input, research, highlights, useCases, hook).slice(0, 7) };
+  }
+  if (input.type === "top_list") {
+    return { ...base, segments: topListSegments(input, research, useCases, hook).slice(0, 7) };
+  }
+  if (input.type === "website_demo") {
+    return { ...base, segments: websiteDemoSegments(input, research, highlights, hook).slice(0, 7) };
+  }
+  if (input.type === "update_news") {
+    return { ...base, segments: updateNewsSegments(input, research, highlights, useCases, hook).slice(0, 7) };
+  }
+
   const segments: ScriptSegment[] = [
     {
       sceneType: "HOOK",
@@ -76,18 +105,225 @@ export async function generateScript(
   });
 
   return {
-    toolName: input.name,
-    videoType: input.type,
-    hook,
-    coreSellingPoint,
+    ...base,
     segments: segments.slice(0, 7),
-    creative: {
-      angleId: creative.selectedAngle.id,
-      angleTitle: creative.selectedAngle.title,
-      coverTitle: creative.coverIdeas[0]?.title ?? `${input.name} 值得试吗`,
-      coverSubtitle: creative.coverIdeas[0]?.subtitle ?? "一分钟讲清楚",
-    },
   };
+}
+
+function tutorialSegments(
+  input: GenerateInput,
+  research: ResearchResult,
+  highlights: Array<{ title: string; detail: string; sourceUrl: string }>,
+  useCases: string[],
+  hook: string,
+): ScriptSegment[] {
+  const firstStep = useCases[0] ?? "先找到最常用的入口";
+  const secondStep = highlights[0]?.title ?? research.sellingPoints[0] ?? "再试一个核心功能";
+  const thirdStep = highlights[1]?.title ?? useCases[1] ?? "最后判断是否适合你的流程";
+  return [
+    {
+      sceneType: "HOOK",
+      title: `${input.name} 快速上手`,
+      narration: `${hook} 这条按教程讲，不背功能表，只看第一次使用应该先点哪里、试什么、怎么判断有没有用。`,
+      bullets: compactBullets([firstStep, secondStep, thirdStep], 3),
+    },
+    {
+      sceneType: "LANDING_PAGE_DEMO",
+      title: "第一步看入口",
+      narration: `第一步先看入口。打开 ${input.name}，先别急着研究全部页面，先确认它把核心能力放在哪里。`,
+      bullets: ["看入口", "找核心能力", "别迷路"],
+    },
+    {
+      sceneType: "PRODUCT_PAGE_SCROLL",
+      title: "第二步试核心功能",
+      narration: `第二步只试一个核心功能：${secondStep}。一个工具是不是适合你，通常试这一处就能有初步感觉。`,
+      bullets: compactBullets([secondStep, highlights[0]?.detail], 3),
+    },
+    {
+      sceneType: "WORKFLOW",
+      title: "第三步放进流程",
+      narration: `第三步把它放进真实任务里。比如 ${firstStep}，不要为了试工具而试工具，要看它能不能少掉一个重复步骤。`,
+      bullets: compactBullets([firstStep, useCases[1], "少掉重复步骤"], 3),
+    },
+    {
+      sceneType: "CTA",
+      title: "怎么判断值不值",
+      narration: `最后判断很简单：如果它能稳定解决你的一个高频步骤，再继续深用；如果只是看起来很酷，可以先放一放。`,
+      bullets: ["解决高频步骤", "再继续深用", "不硬追新工具"],
+    },
+  ];
+}
+
+function comparisonSegments(
+  input: GenerateInput,
+  research: ResearchResult,
+  highlights: Array<{ title: string; detail: string; sourceUrl: string }>,
+  useCases: string[],
+  hook: string,
+): ScriptSegment[] {
+  const dimension = highlights[0]?.title ?? research.positioning ?? "核心能力";
+  const scenario = useCases[0] ?? "真实工作流";
+  return [
+    {
+      sceneType: "HOOK",
+      title: `${input.name} 怎么选`,
+      narration: `${hook} 这条按对比思路讲，但不做无证据排名，只看几个能帮你做选择的维度。`,
+      bullets: ["不做无证据排名", "看选择维度", "看适合场景"],
+    },
+    {
+      sceneType: "WEBSITE_DEMO",
+      title: "先看官方定位",
+      narration: `先看 ${input.name} 自己怎么定位。对比工具时，第一步不是问谁更强，而是看它主要服务什么任务。`,
+      bullets: compactBullets([research.positioning, dimension], 3),
+    },
+    {
+      sceneType: "COMPARISON",
+      title: "对比维度一",
+      narration: `第一个维度看 ${dimension}。如果你的核心问题正好在这里，它就比泛泛的全能工具更值得先试。`,
+      bullets: compactBullets([dimension, highlights[0]?.detail], 3),
+    },
+    {
+      sceneType: "WORKFLOW",
+      title: "对比维度二",
+      narration: `第二个维度看场景。它更适合 ${scenario}，所以选择时要从任务出发，不要只看功能数量。`,
+      bullets: compactBullets([scenario, useCases[1], "从任务出发"], 3),
+    },
+    {
+      sceneType: "RECOMMENDATION",
+      title: "适合谁先试",
+      narration: `如果你已经有这个场景，${input.name} 可以优先了解；如果只是想随便尝鲜，就先看免费试用和学习成本。`,
+      bullets: compactBullets([scenario, "看学习成本", "先小范围试"], 3),
+    },
+    {
+      sceneType: "CTA",
+      title: "一句话结论",
+      narration: `这类对比的重点不是争第一，而是找到哪个工具最适合你的任务。这个判断，比榜单排名更有用。`,
+      bullets: ["不争第一", "匹配任务", "再决定试用"],
+    },
+  ];
+}
+
+function topListSegments(
+  input: GenerateInput,
+  research: ResearchResult,
+  useCases: string[],
+  hook: string,
+): ScriptSegment[] {
+  const topic = input.topic ?? input.name;
+  return [
+    {
+      sceneType: "HOOK",
+      title: `${topic} 怎么选`,
+      narration: `${hook} 榜单型视频最怕变成空泛排名，所以这条先讲筛选标准，再讲适合场景。`,
+      bullets: ["先讲标准", "再讲场景", "不做无证据排名"],
+    },
+    {
+      sceneType: "TOOL_LIST",
+      title: "筛选标准",
+      narration: `先定标准。看 ${topic}，至少要看三个问题：解决什么任务、学习成本多高、能不能进入你的工作流。`,
+      bullets: ["解决什么任务", "学习成本", "能否进工作流"],
+    },
+    {
+      sceneType: "WORKFLOW",
+      title: "按场景分类",
+      narration: `再按场景分。${toChineseList((useCases.length ? useCases : research.useCases ?? []).slice(0, 3))}，这些场景不能混在一起比较。`,
+      bullets: compactBullets(useCases.length ? useCases : research.useCases ?? [], 4),
+    },
+    {
+      sceneType: "RECOMMENDATION",
+      title: "试用顺序",
+      narration: `最后给试用顺序：先选最贴近当前任务的一个工具，小范围跑一次，再决定要不要换成长期工作流。`,
+      bullets: ["先选一个", "小范围跑一次", "再长期使用"],
+    },
+    {
+      sceneType: "CTA",
+      title: "榜单怎么记",
+      narration: `记住，工具榜单不是让你收藏一堆名字，而是帮你更快排除不适合的工具。`,
+      bullets: ["少收藏名字", "多排除不适合", "围绕任务选"],
+    },
+  ];
+}
+
+function websiteDemoSegments(
+  input: GenerateInput,
+  research: ResearchResult,
+  highlights: Array<{ title: string; detail: string; sourceUrl: string }>,
+  hook: string,
+): ScriptSegment[] {
+  return [
+    {
+      sceneType: "HOOK",
+      title: `${input.name} 官网速看`,
+      narration: `${hook} 这条主要看官网和产品页面，快速判断它主打什么，不把它讲成纯文字介绍。`,
+      bullets: compactBullets([research.positioning, highlights[0]?.title], 3),
+    },
+    {
+      sceneType: "LANDING_PAGE_DEMO",
+      title: "首屏看定位",
+      narration: `先看首屏。一个工具的首屏通常会告诉你：它想服务谁，以及最想让你记住什么。`,
+      bullets: ["首屏定位", "服务对象", "主打信息"],
+    },
+    {
+      sceneType: "PRODUCT_PAGE_SCROLL",
+      title: "往下看功能",
+      narration: `再往下看功能页。重点不是每个模块都读一遍，而是找有没有和真实任务相关的能力。`,
+      bullets: compactBullets([highlights[0]?.title, highlights[1]?.title, "真实任务相关"], 3),
+    },
+    {
+      sceneType: "SELLING_POINT",
+      title: naturalTitle(highlights[0]?.title, "核心判断"),
+      narration: `看完页面之后，最值得记住的是：${highlights[0]?.detail ?? research.summary}`,
+      bullets: compactBullets([highlights[0]?.title, highlights[0]?.detail], 3),
+    },
+    {
+      sceneType: "CTA",
+      title: "官网速看结论",
+      narration: `所以看 ${input.name}，先抓定位，再抓一个核心能力，最后再决定要不要深入试用。`,
+      bullets: ["抓定位", "抓核心能力", "再试用"],
+    },
+  ];
+}
+
+function updateNewsSegments(
+  input: GenerateInput,
+  research: ResearchResult,
+  highlights: Array<{ title: string; detail: string; sourceUrl: string }>,
+  useCases: string[],
+  hook: string,
+): ScriptSegment[] {
+  const update = highlights[0]?.title ?? "最近值得关注的变化";
+  return [
+    {
+      sceneType: "HOOK",
+      title: `${input.name} 更新速看`,
+      narration: `${hook} 这条按更新速递讲，只看这次变化会影响什么场景，不夸大成颠覆式结论。`,
+      bullets: ["只看变化", "看影响场景", "不夸大结论"],
+    },
+    {
+      sceneType: "WEBSITE_DEMO",
+      title: "先找更新来源",
+      narration: `先看官方页面、博客或 changelog。更新类内容一定要先找来源，再讲它可能带来的影响。`,
+      bullets: ["官方来源", "更新内容", "影响判断"],
+    },
+    {
+      sceneType: "FEATURE",
+      title: naturalTitle(update, "更新重点"),
+      narration: `这次最值得看的变化是 ${update}。如果你已经在用 ${input.name}，这里可能会影响日常流程。`,
+      bullets: compactBullets([update, highlights[0]?.detail], 3),
+    },
+    {
+      sceneType: "WORKFLOW",
+      title: "影响什么场景",
+      narration: `它可能影响的场景是 ${toChineseList(useCases.slice(0, 2))}。如果你不用这些场景，就不用急着跟进。`,
+      bullets: compactBullets([useCases[0], useCases[1], "不用急着跟进"], 3),
+    },
+    {
+      sceneType: "CTA",
+      title: "要不要更新",
+      narration: `最后判断：更新值得知道，但不一定马上迁移。先看它有没有解决你正在遇到的问题。`,
+      bullets: ["值得知道", "不急迁移", "看真实问题"],
+    },
+  ];
 }
 
 function insightHighlights(research: ResearchResult): Array<{ title: string; detail: string; sourceUrl: string }> {

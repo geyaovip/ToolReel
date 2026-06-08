@@ -127,7 +127,7 @@ function hasUsableAsset(path: string | undefined): boolean {
 export async function renderSceneVideo(args: RenderSceneVideoArgs): Promise<void> {
   const { scene, script, assets, outputPath, theme } = args;
   await ensureDir(dirname(outputPath));
-  if (scene.type === "WEBSITE_DEMO" && websiteDemoScreenshot(assets)) {
+  if (isWebScene(scene) && websiteDemoScreenshot(assets)) {
     await renderWebsiteScreenshotScene(args);
     return;
   }
@@ -261,6 +261,10 @@ function websiteDemoScreenshot(assets: AssetData): string | undefined {
     return selected;
   }
   return hasUsableAsset(assets.websiteScreenshot) ? assets.websiteScreenshot : undefined;
+}
+
+function isWebScene(scene: PlannedScene): boolean {
+  return ["WEBSITE_DEMO", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL"].includes(scene.type);
 }
 
 function fallbackCaptions(scene: PlannedScene): Caption[] {

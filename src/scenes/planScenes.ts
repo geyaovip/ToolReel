@@ -5,10 +5,15 @@ const DEFAULT_DURATIONS: Record<string, number> = {
   HOOK: 6,
   PROBLEM: 6,
   WEBSITE_DEMO: 8,
+  LANDING_PAGE_DEMO: 8,
+  PRODUCT_PAGE_SCROLL: 9,
   SELLING_POINT: 8,
   FEATURE: 7,
   WORKFLOW: 7,
   TARGET_USER: 6,
+  TOOL_LIST: 8,
+  COMPARISON: 8,
+  RECOMMENDATION: 7,
   CTA: 6,
 };
 
@@ -37,8 +42,10 @@ export function planScenes(script: ScriptData, creative?: CreativeBrief, assets?
 
 function selectSceneAsset(sceneType: ScriptData["segments"][number]["sceneType"], assets: AssetData | undefined) {
   const selected =
-    sceneType === "WEBSITE_DEMO"
+    sceneType === "WEBSITE_DEMO" || sceneType === "LANDING_PAGE_DEMO"
       ? assets?.selectedAssets?.websiteDemoPage
+      : sceneType === "PRODUCT_PAGE_SCROLL"
+        ? assets?.selectedAssets?.featurePage ?? assets?.selectedAssets?.websiteDemoPage
       : sceneType === "FEATURE" || sceneType === "SELLING_POINT"
         ? assets?.selectedAssets?.featurePage
         : sceneType === "WORKFLOW" || sceneType === "TARGET_USER"
@@ -49,7 +56,7 @@ function selectSceneAsset(sceneType: ScriptData["segments"][number]["sceneType"]
     if (
       assets?.websiteScreenshot &&
       assets.websiteScreenshot !== "unknown" &&
-      ["WEBSITE_DEMO", "SELLING_POINT", "FEATURE", "WORKFLOW", "TARGET_USER"].includes(sceneType)
+      ["WEBSITE_DEMO", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL", "SELLING_POINT", "FEATURE", "WORKFLOW", "TARGET_USER"].includes(sceneType)
     ) {
       return {
         pageKind: "homepage" as const,
@@ -102,6 +109,30 @@ function fallbackSceneGuidance(script: ScriptData, segment: ScriptData["segments
     return {
       intent: "补充一个能帮助用户判断的关键细节",
       visualFocus: "关键细节、适用判断",
+      onScreenFocus,
+    };
+  }
+
+  if (segment.sceneType === "LANDING_PAGE_DEMO" || segment.sceneType === "PRODUCT_PAGE_SCROLL") {
+    return {
+      intent: "展示真实网页现场，帮助用户快速判断产品定位和核心能力",
+      visualFocus: segment.sceneType === "LANDING_PAGE_DEMO" ? "官网首屏、定位信息" : "页面滚动、功能区域",
+      onScreenFocus,
+    };
+  }
+
+  if (segment.sceneType === "TOOL_LIST") {
+    return {
+      intent: "说明榜单筛选标准，不做无证据排名",
+      visualFocus: "筛选标准、场景分类",
+      onScreenFocus,
+    };
+  }
+
+  if (segment.sceneType === "COMPARISON" || segment.sceneType === "RECOMMENDATION") {
+    return {
+      intent: "帮助用户按任务和场景做选择",
+      visualFocus: "对比维度、适用场景、推荐判断",
       onScreenFocus,
     };
   }

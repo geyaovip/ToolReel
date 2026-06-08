@@ -18,6 +18,27 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
   const notes: string[] = [];
   const manual = await readManualAssets(input.outputDir);
   const existing = await readExistingAssets(input.outputDir);
+  if (!input.url.trim()) {
+    const hasManualOrExistingAssets =
+      Boolean(existingUsablePath(existing?.logo) || existingUsablePath(existing?.websiteScreenshot) || existingUsablePath(existing?.productScreenshot)) ||
+      manualAssetCount(manual) > 0;
+    return scoreAssets({
+      logo: existingUsablePath(existing?.logo) ?? "unknown",
+      websiteScreenshot: existingUsablePath(existing?.websiteScreenshot) ?? "unknown",
+      productScreenshot: existingUsablePath(existing?.productScreenshot) ?? "unknown",
+      source: hasManualOrExistingAssets ? "auto" : "mock",
+      assetsDir,
+      logoCandidates: mergeManualAssets(existing?.logoCandidates ?? [], manual?.logoCandidates),
+      imageCandidates: mergeManualAssets(existing?.imageCandidates ?? [], manual?.imageCandidates),
+      videoCandidates: mergeManualAssets(existing?.videoCandidates ?? [], manual?.videoCandidates),
+      socialCandidates: mergeManualAssets(existing?.socialCandidates ?? [], manual?.socialCandidates),
+      pageCandidates: mergeManualAssets(existing?.pageCandidates ?? [], manual?.pageCandidates),
+      externalCandidates: mergeManualAssets(existing?.externalCandidates ?? [], manual?.externalCandidates),
+      quoteCandidates: mergeManualAssets(existing?.quoteCandidates ?? [], manual?.quoteCandidates),
+      localRecordings: mergeManualAssets(existing?.localRecordings ?? [], manual?.localRecordings),
+      notes: ["No official URL provided; asset collection is limited to manual assets."],
+    });
+  }
   const homepageUrl = normalizeUrl(input.url);
   const html = await fetchHomepageHtml(homepageUrl, notes);
   const metadata = html ? extractPageMetadata(html, homepageUrl) : undefined;
@@ -131,6 +152,7 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
     logo: logoPath ?? logoCandidates[0]?.url ?? "unknown",
     websiteScreenshot: screenshotPath ?? "unknown",
     productScreenshot: screenshotPath ?? "unknown",
+    websiteScrollScreenshot: screenshotPath,
     source: screenshotPath || logoPath || metadata ? "auto" : "mock",
     assetsDir,
     homepage: {
@@ -159,12 +181,32 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
       dedupeCandidates(pageCandidates),
       mergeManualAssets(existing?.pageCandidates ?? [], manual?.pageCandidates),
     ),
+    externalCandidates: mergeManualAssets(
+      dedupeCandidates(buildExternalCandidates(metadata, linkedPageMetadata)),
+      mergeManualAssets(existing?.externalCandidates ?? [], manual?.externalCandidates),
+    ),
     quoteCandidates: mergeManualAssets(existing?.quoteCandidates ?? [], manual?.quoteCandidates),
     localRecordings: mergeManualAssets(existing?.localRecordings ?? [], manual?.localRecordings),
     notes,
   });
 
   return await attachSelectedPageScreenshot(scoredAssets, assetsDir, notes);
+}
+
+function manualAssetCount(manual: Awaited<ReturnType<typeof readManualAssets>>): number {
+  if (!manual) {
+    return 0;
+  }
+  return [
+    manual.logoCandidates,
+    manual.imageCandidates,
+    manual.videoCandidates,
+    manual.socialCandidates,
+    manual.pageCandidates,
+    manual.externalCandidates,
+    manual.quoteCandidates,
+    manual.localRecordings,
+  ].reduce((sum, items) => sum + (items?.length ?? 0), 0);
 }
 
 function buildPageCandidates(html: string, homepageUrl: string): AssetCandidate[] {
@@ -199,6 +241,53 @@ async function fetchLinkedPageMetadata(
     });
   }
   return results;
+}
+
+function buildExternalCandidates(
+  metadata: ReturnType<typeof extractPageMetadata> | undefined,
+  linkedPageMetadata: Array<{ label: string; kind: AssetCandidate["kind"]; metadata: ReturnType<typeof extractPageMetadata> }>,
+): AssetCandidate[] {
+  const socialUrls = [
+    ...(metadata?.socialUrls ?? []),
+    ...linkedPageMetadata.flatMap((page) => page.metadata.socialUrls),
+  ];
+  const videoUrls = [
+    ...(metadata?.videoUrls ?? []),
+    ...linkedPageMetadata.flatMap((page) => page.metadata.videoUrls),
+  ];
+
+  return [
+    ...socialUrls.map((url) => ({
+      type: "social" as const,
+      url,
+      label: externalLabel(url),
+      source: "third_party" as const,
+      confidence: wasLinkedFromOfficialSite(url) ? ("medium" as const) : ("low" as const),
+    })),
+    ...videoUrls.map((url) => ({
+      type: "video" as const,
+      url,
+      label: externalLabel(url),
+      source: "third_party" as const,
+      confidence: wasLinkedFromOfficialSite(url) ? ("medium" as const) : ("low" as const),
+    })),
+  ];
+}
+
+function externalLabel(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    if (/youtube|youtu\.be/.test(host)) return "Official-linked video candidate";
+    if (/twitter|x\.com/.test(host)) return "Official-linked social candidate";
+    if (/github/.test(host)) return "Official-linked repository candidate";
+    return "Official-linked external candidate";
+  } catch {
+    return "External candidate";
+  }
+}
+
+function wasLinkedFromOfficialSite(url: string): boolean {
+  return /^https?:\/\//i.test(url);
 }
 
 function labelForKind(kind: AssetCandidate["kind"]): string {

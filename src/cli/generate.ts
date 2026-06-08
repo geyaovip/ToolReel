@@ -4,6 +4,7 @@ import type { VideoType } from "../types.ts";
 type CliArgs = {
   name?: string;
   url?: string;
+  topic?: string;
   type?: VideoType;
 };
 
@@ -17,12 +18,27 @@ function parseArgs(argv: string[]): CliArgs {
     const value = rawValue.join("=");
     if (rawKey === "name") parsed.name = value;
     if (rawKey === "url") parsed.url = value;
+    if (rawKey === "topic") parsed.topic = value;
     if (rawKey === "type") parsed.type = value as VideoType;
   }
   return parsed;
 }
 
-function requireArgs(args: CliArgs): Required<CliArgs> {
+function requireArgs(args: CliArgs): { name: string; url: string; topic?: string; type: VideoType } {
+  const type = args.type ?? "product_pick";
+  if (type === "top_list") {
+    const topic = args.topic || args.name;
+    if (!topic) {
+      throw new Error('Usage: pnpm generate --topic="AI coding tools" --type="top_list"');
+    }
+    return {
+      name: args.name ?? topic,
+      url: args.url ?? "",
+      topic,
+      type,
+    };
+  }
+
   if (!args.name || !args.url) {
     throw new Error(
       'Usage: pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"',
@@ -32,7 +48,8 @@ function requireArgs(args: CliArgs): Required<CliArgs> {
   return {
     name: args.name,
     url: args.url,
-    type: args.type ?? "product_pick",
+    topic: args.topic,
+    type,
   };
 }
 

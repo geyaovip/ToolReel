@@ -21,21 +21,35 @@ export function validateContentQuality(
   const text = collectScriptText(script);
   const hasPriceSegment = script.segments.some((segment) => segment.sceneType === "PRICING");
   const hasWorkflowOrUseCase = script.segments.some((segment) =>
-    ["WORKFLOW", "TARGET_USER"].includes(segment.sceneType),
+    [
+      "WORKFLOW",
+      "TARGET_USER",
+      "TOOL_LIST",
+      "COMPARISON",
+      "RECOMMENDATION",
+      "LANDING_PAGE_DEMO",
+      "PRODUCT_PAGE_SCROLL",
+    ].includes(segment.sceneType),
   );
   const unsupportedClaims = findUnsupportedClaims(text, research);
   const longEnglishLines = text.filter(hasLongEnglishRun);
   const insightCategories = new Set((research.insights ?? []).map((item) => item.category));
+  const requiresSourceCoverage = script.videoType !== "top_list";
 
   const checks = [
     check("researchConfidencePresent", Boolean(research.confidence), research.confidence ?? "missing", "high|medium|low"),
     check(
       "sourceCoverage",
-      (research.sourcePages?.length ?? 0) >= 2,
+      !requiresSourceCoverage || (research.sourcePages?.length ?? 0) >= 2,
       research.sourcePages?.length ?? 0,
-      "homepage plus at least one extension source",
+      requiresSourceCoverage ? "homepage plus at least one extension source" : "topic mode can defer source pages",
     ),
-    check("evidencePresent", (research.evidence?.length ?? 0) >= 2, research.evidence?.length ?? 0, ">=2"),
+    check(
+      "evidencePresent",
+      !requiresSourceCoverage || (research.evidence?.length ?? 0) >= 2,
+      research.evidence?.length ?? 0,
+      requiresSourceCoverage ? ">=2" : "topic mode can defer concrete evidence",
+    ),
     check("insightsPresent", (research.insights?.length ?? 0) >= 3, research.insights?.length ?? 0, ">=3"),
     check("positioningInsightPresent", insightCategories.has("positioning"), [...insightCategories].join(", ") || "none", "positioning"),
     check(

@@ -25,7 +25,8 @@ export function validateVisibleText(
   );
   const scenesMissingAssetSelection = scenes.filter(
     (scene) =>
-      ["WEBSITE_DEMO", "SELLING_POINT", "FEATURE", "WORKFLOW", "TARGET_USER"].includes(scene.type) &&
+      scene.renderStatus !== "skipped" &&
+      ["WEBSITE_DEMO", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL", "SELLING_POINT", "FEATURE", "TARGET_USER"].includes(scene.type) &&
       !scene.assetSelection,
   );
   return [
@@ -51,7 +52,7 @@ export function validateVisibleText(
       name: "sceneAssetSelectionPresent",
       passed: scenesMissingAssetSelection.length === 0,
       actual: scenesMissingAssetSelection.map((scene) => scene.id).join(", ") || "all key scenes have assets",
-      expected: "website, selling point, feature, workflow, and target user scenes select a page or asset",
+      expected: "website, selling point, feature, and target user scenes select a page or asset",
     },
   ];
 }
@@ -70,7 +71,7 @@ function collectVisibleText(
       segment.narration,
       ...(segment.bullets ?? []),
     ]),
-    ...scenes.flatMap((scene) => [
+    ...scenes.filter((scene) => scene.renderStatus !== "skipped").flatMap((scene) => [
       scene.type === "WEBSITE_DEMO" ? "" : scene.title,
       scene.narration,
       ...scene.bullets,

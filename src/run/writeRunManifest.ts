@@ -50,6 +50,7 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
       voiceMeta: join(args.outputDir, "voice.json"),
       scenes: join(args.outputDir, "scenes.json"),
       cover: join(args.outputDir, "cover.png"),
+      coverMeta: join(args.outputDir, "cover.json"),
       finalVideo: args.finalVideo,
       validation: join(args.outputDir, "validation.json"),
       mvpReadiness: join(args.outputDir, "mvp-readiness.json"),
@@ -64,6 +65,7 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
       assetSource: args.assets.source,
       researchSourcePageCount: args.research.sourcePages?.length ?? 0,
       unknownCount: args.research.unknowns?.length ?? 0,
+      skippedSceneCount: args.scenes.filter((scene) => scene.renderStatus === "skipped").length,
     },
     checks: args.validation.checks,
     warnings: collectWarnings(args),
@@ -79,6 +81,9 @@ function collectWarnings(args: WriteRunManifestArgs): string[] {
     ...(args.assets.notes ?? []).map((note) => `Asset note: ${note}`),
     ...(args.research.notes ?? []).map((note) => `Research note: ${note}`),
     ...(args.research.unknowns ?? []).map((unknown) => `Research unknown: ${unknown}`),
+    ...args.scenes
+      .filter((scene) => scene.renderStatus === "skipped")
+      .map((scene) => `Scene skipped: ${scene.id} - ${scene.renderSkipReason ?? "unknown reason"}`),
     `Creative angle: ${args.creative.selectedAngle.title}`,
     ...args.validation.checks
       .filter((check) => !check.passed)

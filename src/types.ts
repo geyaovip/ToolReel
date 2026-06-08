@@ -3,7 +3,8 @@ export type VideoType =
   | "top_list"
   | "tutorial"
   | "comparison"
-  | "website_demo";
+  | "website_demo"
+  | "update_news";
 
 export type SceneType =
   | "HOOK"
@@ -27,6 +28,7 @@ export type GenerateInput = {
   name: string;
   url: string;
   type: VideoType;
+  topic?: string;
   createdAt: string;
   outputDir: string;
 };
@@ -130,6 +132,14 @@ export type CoverIdea = {
   rationale: string;
 };
 
+export type CoverData = {
+  schemaVersion: 1;
+  generatedAt: string;
+  selected: CoverIdea;
+  ideas: CoverIdea[];
+  outputPath: string;
+};
+
 export type CreativeBrief = {
   toolName: string;
   generatedAt: string;
@@ -157,6 +167,8 @@ export type AssetData = {
   logo: string;
   websiteScreenshot: string;
   productScreenshot: string;
+  websiteScrollScreenshot?: string;
+  productPageScreenshot?: string;
   source: "auto" | "mock";
   assetsDir?: string;
   homepage?: {
@@ -171,6 +183,7 @@ export type AssetData = {
   socialCandidates?: AssetCandidate[];
   pageCandidates?: AssetCandidate[];
   scoredCandidates?: ScoredAssetCandidate[];
+  externalCandidates?: AssetCandidate[];
   selectedAssets?: {
     websiteDemoPage?: ScoredAssetCandidate;
     featurePage?: ScoredAssetCandidate;
@@ -241,6 +254,8 @@ export type PlannedScene = {
     score?: number;
     reasons?: string[];
   };
+  renderStatus?: "planned" | "rendered" | "skipped";
+  renderSkipReason?: string;
   duration: number;
   renderer?: RendererName;
   outputPath?: string;
@@ -277,6 +292,7 @@ export type RunManifest = {
     voiceMeta: string;
     scenes: string;
     cover: string;
+    coverMeta: string;
     finalVideo: string;
     validation: string;
     mvpReadiness: string;
@@ -291,6 +307,7 @@ export type RunManifest = {
     assetSource: AssetData["source"];
     researchSourcePageCount: number;
     unknownCount: number;
+    skippedSceneCount: number;
   };
   checks: OutputValidationCheck[];
   warnings: string[];

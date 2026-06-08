@@ -10,6 +10,7 @@ import type {
   PlannedScene,
   RunManifest,
   SceneType,
+  VideoType,
 } from "../types.ts";
 import { writeJson } from "../utils/file.ts";
 
@@ -34,6 +35,7 @@ const REQUIRED_FILES = [
   "voice.mp3",
   "voice.json",
   "cover.png",
+  "cover.json",
   "scenes.json",
   "validation.json",
   "first-frame.png",
@@ -41,7 +43,6 @@ const REQUIRED_FILES = [
   "final.mp4",
 ];
 
-const REQUIRED_SCENES: SceneType[] = ["HOOK", "WEBSITE_DEMO", "SELLING_POINT", "CTA"];
 const REQUIRED_CHECKS = [
   "width",
   "height",
@@ -59,6 +60,8 @@ const REQUIRED_CHECKS = [
 
 export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness> {
   const bundle = await readArtifacts(outputDir);
+  const requiredScenes = requiredScenesFor(bundle.run.input.type);
+  const requiresUrlAssets = bundle.run.input.type !== "top_list";
   const checks = [
     check("runPassed", bundle.run.status === "passed", bundle.run.status, "passed"),
     check("validationPassed", bundle.validation.passed, bundle.validation.passed, true),
@@ -66,16 +69,36 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
     check("requiredFilesPresent", await requiredFilesPresent(outputDir), REQUIRED_FILES.length, REQUIRED_FILES.length),
     check(
       "requiredScenesPresent",
-      REQUIRED_SCENES.every((sceneType) => hasScene(bundle.scenes, sceneType)),
+      requiredScenes.every((sceneType) => hasScene(bundle.scenes, sceneType)),
       bundle.scenes.map((scene) => scene.type).join(", "),
-      REQUIRED_SCENES.join(", "),
+      requiredScenes.join(", "),
     ),
     check("realTtsProvider", bundle.run.summary.voiceProvider !== "mock", bundle.run.summary.voiceProvider, "real TTS provider"),
     check("captionCount", bundle.captions.length >= 8, bundle.captions.length, ">=8"),
-    check("researchSources", bundle.run.summary.researchSourcePageCount >= 1, bundle.run.summary.researchSourcePageCount, ">=1"),
-    check("pageCandidates", (bundle.assets.pageCandidates?.length ?? 0) >= 1, bundle.assets.pageCandidates?.length ?? 0, ">=1"),
-    check("scoredAssets", (bundle.assets.scoredCandidates?.length ?? 0) >= 1, bundle.assets.scoredCandidates?.length ?? 0, ">=1"),
-    check("selectedWebsiteDemoAsset", Boolean(bundle.assets.selectedAssets?.websiteDemoPage), Boolean(bundle.assets.selectedAssets?.websiteDemoPage), true),
+    check(
+      "researchSources",
+      !requiresUrlAssets || bundle.run.summary.researchSourcePageCount >= 1,
+      bundle.run.summary.researchSourcePageCount,
+      requiresUrlAssets ? ">=1" : "topic mode can defer concrete source pages",
+    ),
+    check(
+      "pageCandidates",
+      !requiresUrlAssets || (bundle.assets.pageCandidates?.length ?? 0) >= 1,
+      bundle.assets.pageCandidates?.length ?? 0,
+      requiresUrlAssets ? ">=1" : "topic mode can defer page candidates",
+    ),
+    check(
+      "scoredAssets",
+      !requiresUrlAssets || (bundle.assets.scoredCandidates?.length ?? 0) >= 1,
+      bundle.assets.scoredCandidates?.length ?? 0,
+      requiresUrlAssets ? ">=1" : "topic mode can defer scored assets",
+    ),
+    check(
+      "selectedWebsiteDemoAsset",
+      !requiresUrlAssets || Boolean(bundle.assets.selectedAssets?.websiteDemoPage),
+      Boolean(bundle.assets.selectedAssets?.websiteDemoPage),
+      requiresUrlAssets ? true : "topic mode can defer website demo asset",
+    ),
     ...REQUIRED_CHECKS.map((name) => {
       const validationCheck = bundle.validation.checks.find((item) => item.name === name);
       return check(`validation:${name}`, Boolean(validationCheck?.passed), validationCheck?.actual, "passed");
@@ -102,9 +125,9 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
     checks,
     deferred: [
       {
-        item: "HyperFrames 深度网站转视频",
-        reason: "MVP 只要求 WEBSITE_DEMO 可用、可验证、非误导；完整网站转视频放到 v1.2。",
-        targetVersion: "v1.2",
+        item: "HyperFrames 高级网站转视频",
+        reason: "当前已支持网页类 scene、截图滚动和缺素材跳过；更精细的 DOM 区域识别和真实录屏仍可后续优化。",
+        targetVersion: "post v1.4",
       },
       {
         item: "复杂后台和审核界面",
@@ -116,6 +139,25 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
 
   await writeJson(join(outputDir, "mvp-readiness.json"), readiness);
   return readiness;
+}
+
+function requiredScenesFor(videoType: VideoType): SceneType[] {
+  if (videoType === "tutorial") {
+    return ["HOOK", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL", "WORKFLOW", "CTA"];
+  }
+  if (videoType === "comparison") {
+    return ["HOOK", "WEBSITE_DEMO", "COMPARISON", "RECOMMENDATION", "CTA"];
+  }
+  if (videoType === "top_list") {
+    return ["HOOK", "TOOL_LIST", "WORKFLOW", "RECOMMENDATION", "CTA"];
+  }
+  if (videoType === "website_demo") {
+    return ["HOOK", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL", "CTA"];
+  }
+  if (videoType === "update_news") {
+    return ["HOOK", "WEBSITE_DEMO", "FEATURE", "WORKFLOW", "CTA"];
+  }
+  return ["HOOK", "WEBSITE_DEMO", "SELLING_POINT", "CTA"];
 }
 
 async function readArtifacts(outputDir: string): Promise<ArtifactBundle> {

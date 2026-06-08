@@ -79,6 +79,7 @@ export async function generateCreativeBrief(
     ...research.targetUsers,
     ...(research.useCases ?? []),
     ...(research.highlights ?? []).flatMap((item) => [item.title, item.detail]),
+    ...(research.insights ?? []).flatMap((item) => [item.title, item.detail, item.category]),
     ...(research.evidence ?? []).map((item) => item.text),
   ]
     .filter(Boolean)
@@ -129,6 +130,7 @@ function scoreAngle(seed: AngleSeed, corpus: string, proofPool: string[]): Creat
 
 function buildProofPool(research: ResearchResult): string[] {
   return [
+    ...(research.insights ?? []).map((item) => item.title),
     ...(research.highlights ?? []).map((item) => item.title),
     ...research.sellingPoints,
     ...(research.useCases ?? []),
@@ -148,7 +150,11 @@ function buildSceneBeats(
 ): CreativeSceneBeat[] {
   const strongestProof = angle.proofPoints[0] ?? research.sellingPoints[0] ?? research.summary;
   const secondProof = angle.proofPoints[1] ?? research.sellingPoints[1] ?? strongestProof;
-  const useCase = research.useCases?.[0] ?? research.targetUsers[0] ?? "真实工作场景";
+  const useCase =
+    research.insights?.find((item) => item.category === "use_case" || item.category === "workflow")?.title ??
+    research.useCases?.[0] ??
+    research.targetUsers[0] ??
+    "真实工作场景";
 
   return [
     {

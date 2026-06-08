@@ -6,8 +6,8 @@ export async function generateScript(
   research: ResearchResult,
   creative: CreativeBrief,
 ): Promise<ScriptData> {
-  const highlights = (research.highlights ?? []).slice(0, 4);
-  const useCases = (research.useCases ?? []).slice(0, 3);
+  const highlights = insightHighlights(research).slice(0, 4);
+  const useCases = insightUseCases(research).slice(0, 3);
   const hook = buildHook(input.name, research, creative);
   const coreSellingPoint = research.positioning || research.summary;
   const selectedAngle = creative.selectedAngle;
@@ -88,6 +88,20 @@ export async function generateScript(
       coverSubtitle: creative.coverIdeas[0]?.subtitle ?? "一分钟讲清楚",
     },
   };
+}
+
+function insightHighlights(research: ResearchResult): Array<{ title: string; detail: string; sourceUrl: string }> {
+  const insightHighlights = (research.insights ?? [])
+    .filter((item) => ["core_capability", "workflow", "trust"].includes(item.category))
+    .map((item) => ({ title: item.title, detail: item.detail, sourceUrl: item.sourceUrl }));
+  return insightHighlights.length ? insightHighlights : (research.highlights ?? []);
+}
+
+function insightUseCases(research: ResearchResult): string[] {
+  const insights = (research.insights ?? [])
+    .filter((item) => ["use_case", "workflow", "audience"].includes(item.category))
+    .map((item) => item.title);
+  return insights.length ? [...new Set(insights)] : (research.useCases ?? []);
 }
 
 function buildHook(toolName: string, research: ResearchResult, creative: CreativeBrief): string {

@@ -25,6 +25,7 @@ export function validateContentQuality(
   );
   const unsupportedClaims = findUnsupportedClaims(text, research);
   const longEnglishLines = text.filter(hasLongEnglishRun);
+  const insightCategories = new Set((research.insights ?? []).map((item) => item.category));
 
   const checks = [
     check("researchConfidencePresent", Boolean(research.confidence), research.confidence ?? "missing", "high|medium|low"),
@@ -35,6 +36,20 @@ export function validateContentQuality(
       "homepage plus at least one extension source",
     ),
     check("evidencePresent", (research.evidence?.length ?? 0) >= 2, research.evidence?.length ?? 0, ">=2"),
+    check("insightsPresent", (research.insights?.length ?? 0) >= 3, research.insights?.length ?? 0, ">=3"),
+    check("positioningInsightPresent", insightCategories.has("positioning"), [...insightCategories].join(", ") || "none", "positioning"),
+    check(
+      "capabilityInsightPresent",
+      insightCategories.has("core_capability") || insightCategories.has("workflow"),
+      [...insightCategories].join(", ") || "none",
+      "core_capability or workflow",
+    ),
+    check(
+      "useCaseInsightPresent",
+      insightCategories.has("use_case") || insightCategories.has("workflow") || insightCategories.has("audience"),
+      [...insightCategories].join(", ") || "none",
+      "use_case, workflow, or audience",
+    ),
     check("creativeAngleSelected", Boolean(creative.selectedAngle?.id), creative.selectedAngle?.id ?? "missing", "selected angle"),
     check("sceneBeatsPresent", creative.sceneBeats.length >= 4, creative.sceneBeats.length, ">=4"),
     check("noPriceSegment", !hasPriceSegment, hasPriceSegment, false),
@@ -53,6 +68,7 @@ export function validateContentQuality(
       confidence: research.confidence,
       sourcePageCount: research.sourcePages?.length ?? 0,
       evidenceCount: research.evidence?.length ?? 0,
+      insightCount: research.insights?.length ?? 0,
       segmentCount: script.segments.length,
       hasPriceSegment,
       hasWorkflowOrUseCase,

@@ -37,6 +37,7 @@ export type ResearchResult = {
   summary: string;
   pricing: "unknown" | string;
   confidence?: "high" | "medium" | "low";
+  insights?: ResearchInsight[];
   targetUsers: string[];
   sellingPoints: string[];
   positioning?: string;
@@ -46,6 +47,23 @@ export type ResearchResult = {
   sourcePages?: ResearchSourcePage[];
   unknowns?: string[];
   notes?: string[];
+};
+
+export type ResearchInsightCategory =
+  | "positioning"
+  | "core_capability"
+  | "use_case"
+  | "workflow"
+  | "trust"
+  | "audience"
+  | "unknown";
+
+export type ResearchInsight = {
+  category: ResearchInsightCategory;
+  title: string;
+  detail: string;
+  sourceUrl: string;
+  confidence: "high" | "medium" | "low";
 };
 
 export type ResearchHighlight = {
@@ -287,6 +305,7 @@ export type ContentQualityReport = {
     confidence: ResearchResult["confidence"];
     sourcePageCount: number;
     evidenceCount: number;
+    insightCount: number;
     segmentCount: number;
     hasPriceSegment: boolean;
     hasWorkflowOrUseCase: boolean;

@@ -1,5 +1,5 @@
 import type { ExtractedPage } from "./pageExtract.ts";
-import type { ResearchEvidence, ResearchHighlight } from "../types.ts";
+import type { ResearchEvidence, ResearchHighlight, ResearchInsight } from "../types.ts";
 
 const VALUE_WORDS = [
   "ai",
@@ -32,6 +32,7 @@ export function summarizePages(toolName: string, pages: ExtractedPage[]): {
   useCases: string[];
   pricing: "unknown" | string;
   evidence: ResearchEvidence[];
+  insights: ResearchInsight[];
   unknowns: string[];
 } {
   const allBlocks = pages.flatMap((page) =>
@@ -54,6 +55,7 @@ export function summarizePages(toolName: string, pages: ExtractedPage[]): {
   const useCases = inferUseCases(ranked.map((item) => item.text).join(" "));
   const pricing = inferPricing(pages);
   const summary = buildSummary(toolName, positioning, highlights);
+  const insights = buildInsights(toolName, ranked, positioning, useCases, targetUsers);
 
   return {
     summary,
@@ -64,6 +66,7 @@ export function summarizePages(toolName: string, pages: ExtractedPage[]): {
     useCases,
     pricing,
     evidence,
+    insights,
     unknowns: evidence.length ? [] : ["官网文本不足，无法可靠提炼更多亮点。"],
   };
 }
@@ -119,6 +122,80 @@ function buildHighlights(
         detail: cleanSentence(item.text, 72),
         sourceUrl: item.sourceUrl,
       }));
+}
+
+function buildInsights(
+  toolName: string,
+  ranked: Array<{ text: string; sourceUrl: string; score: number }>,
+  positioning: string,
+  useCases: string[],
+  targetUsers: string[],
+): ResearchInsight[] {
+  const insights: ResearchInsight[] = [];
+  const firstSource = ranked[0]?.sourceUrl ?? "";
+
+  pushInsight(insights, {
+    category: "positioning",
+    title: "产品定位",
+    detail: positioning,
+    sourceUrl: firstSource,
+    confidence: firstSource ? "high" : "medium",
+  });
+
+  for (const item of ranked) {
+    const angle = chineseAngleFor(toolName, item.text);
+    if (!angle) {
+      continue;
+    }
+    pushInsight(insights, {
+      category: categorizeText(item.text),
+      title: angle.title,
+      detail: angle.detail,
+      sourceUrl: item.sourceUrl,
+      confidence: item.score >= 5 ? "high" : "medium",
+    });
+  }
+
+  for (const useCase of useCases.slice(0, 3)) {
+    pushInsight(insights, {
+      category: "use_case",
+      title: useCase,
+      detail: `${toolName} 可以放进这个场景里理解：${useCase}。`,
+      sourceUrl: firstSource,
+      confidence: firstSource ? "medium" : "low",
+    });
+  }
+
+  for (const audience of targetUsers.slice(0, 2)) {
+    pushInsight(insights, {
+      category: "audience",
+      title: audience,
+      detail: `${toolName} 更适合${audience}先了解。`,
+      sourceUrl: firstSource,
+      confidence: firstSource ? "medium" : "low",
+    });
+  }
+
+  return insights.slice(0, 10);
+}
+
+function categorizeText(text: string): ResearchInsight["category"] {
+  const lower = text.toLowerCase();
+  if (/soc 2|saml|privacy|enterprise|audit|access|security|安全|权限/.test(lower)) return "trust";
+  if (/workflow|agent|automate|auto-run|任务|流程|自动/.test(lower)) return "workflow";
+  if (/use case|scenario|场景|适合/.test(lower)) return "use_case";
+  if (/developer|team|enterprise|团队|工程师|开发者/.test(lower)) return "audience";
+  return "core_capability";
+}
+
+function pushInsight(insights: ResearchInsight[], insight: ResearchInsight): void {
+  if (!insight.detail || !insight.sourceUrl) {
+    return;
+  }
+  if (insights.some((item) => item.title === insight.title || item.detail === insight.detail)) {
+    return;
+  }
+  insights.push(insight);
 }
 
 function inferTargetUsers(text: string): string[] {

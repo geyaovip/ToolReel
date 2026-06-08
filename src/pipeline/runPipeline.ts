@@ -7,6 +7,7 @@ import { mergeScenes } from "../merge/mergeScenes.ts";
 import { validateOutput } from "../quality/validateOutput.ts";
 import { validateAssetsForMvp } from "../quality/validateAssets.ts";
 import { checkMvpReadiness } from "../quality/checkMvpReadiness.ts";
+import { validateContentQuality } from "../quality/validateContentQuality.ts";
 import { validateVisibleText } from "../quality/validateVisibleText.ts";
 import { researchTool } from "../research/researchTool.ts";
 import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
@@ -57,6 +58,8 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   await writeJson(join(outputDir, "research.json"), research);
   await writeJson(join(outputDir, "creative.json"), creative);
   await writeJson(join(outputDir, "script.json"), script);
+  const contentQuality = validateContentQuality(research, creative, script);
+  await writeJson(join(outputDir, "content-quality.json"), contentQuality);
   await writeJson(join(outputDir, "assets.json"), assets);
   await writeJson(join(outputDir, "captions.json"), captions);
   await writeFile(join(outputDir, "captions.srt"), captionsToSrt(captions), "utf8");
@@ -77,6 +80,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const finalVideo = await mergeScenes(scenes, voice.outputPath, join(outputDir, "final.mp4"));
   const validation = await validateOutput(finalVideo);
   validation.checks.push(...validateAssetsForMvp(assets));
+  validation.checks.push(...contentQuality.checks.map((item) => ({ ...item, name: `content:${item.name}` })));
   validation.checks.push(...validateVisibleText(script, scenes, captions));
   validation.passed = validation.checks.every((item) => item.passed);
   await writeJson(join(outputDir, "validation.json"), validation);

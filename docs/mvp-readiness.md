@@ -21,6 +21,7 @@ pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"
 - `research.json`
 - `creative.json`
 - `script.json`
+- `content-quality.json`
 - `assets.json`
 - `captions.json`
 - `captions.srt`
@@ -35,6 +36,7 @@ pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"
 
 - `runPassed`
 - `validationPassed`
+- `contentQualityPassed`
 - `requiredFilesPresent`
 - `requiredScenesPresent`
 - `realTtsProvider`
@@ -67,4 +69,3 @@ pnpm mvp:check outputs/YYYY-MM-DD-tool
 ```text
 outputs/YYYY-MM-DD-tool/mvp-readiness.json
 ```
-

@@ -42,6 +42,7 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
       research: join(args.outputDir, "research.json"),
       creative: join(args.outputDir, "creative.json"),
       script: join(args.outputDir, "script.json"),
+      contentQuality: join(args.outputDir, "content-quality.json"),
       assets: join(args.outputDir, "assets.json"),
       captions: join(args.outputDir, "captions.json"),
       captionsSrt: join(args.outputDir, "captions.srt"),

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type {
   AssetData,
   Caption,
+  ContentQualityReport,
   MvpReadiness,
   OutputValidation,
   OutputValidationCheck,
@@ -15,6 +16,7 @@ import { writeJson } from "../utils/file.ts";
 type ArtifactBundle = {
   run: RunManifest;
   validation: OutputValidation;
+  contentQuality: ContentQualityReport;
   assets: AssetData;
   captions: Caption[];
   scenes: PlannedScene[];
@@ -25,6 +27,7 @@ const REQUIRED_FILES = [
   "research.json",
   "creative.json",
   "script.json",
+  "content-quality.json",
   "assets.json",
   "captions.json",
   "captions.srt",
@@ -59,6 +62,7 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
   const checks = [
     check("runPassed", bundle.run.status === "passed", bundle.run.status, "passed"),
     check("validationPassed", bundle.validation.passed, bundle.validation.passed, true),
+    check("contentQualityPassed", bundle.contentQuality.passed, bundle.contentQuality.passed, true),
     check("requiredFilesPresent", await requiredFilesPresent(outputDir), REQUIRED_FILES.length, REQUIRED_FILES.length),
     check(
       "requiredScenesPresent",
@@ -93,6 +97,7 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
       researchSourcePageCount: bundle.run.summary.researchSourcePageCount,
       pageCandidateCount: bundle.assets.pageCandidates?.length ?? 0,
       scoredCandidateCount: bundle.assets.scoredCandidates?.length ?? 0,
+      contentQualityPassed: bundle.contentQuality.passed,
     },
     checks,
     deferred: [
@@ -114,14 +119,15 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
 }
 
 async function readArtifacts(outputDir: string): Promise<ArtifactBundle> {
-  const [run, validation, assets, captions, scenes] = await Promise.all([
+  const [run, validation, contentQuality, assets, captions, scenes] = await Promise.all([
     readJson<RunManifest>(join(outputDir, "run.json")),
     readJson<OutputValidation>(join(outputDir, "validation.json")),
+    readJson<ContentQualityReport>(join(outputDir, "content-quality.json")),
     readJson<AssetData>(join(outputDir, "assets.json")),
     readJson<Caption[]>(join(outputDir, "captions.json")),
     readJson<PlannedScene[]>(join(outputDir, "scenes.json")),
   ]);
-  return { run, validation, assets, captions, scenes };
+  return { run, validation, contentQuality, assets, captions, scenes };
 }
 
 async function readJson<T>(path: string): Promise<T> {

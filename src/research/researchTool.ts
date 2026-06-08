@@ -23,11 +23,13 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
   }
 
   const summary = summarizePages(input.name, pages);
+  const confidence = confidenceFor(pages, summary.evidence.length);
   return {
     toolName: input.name,
     officialUrl,
     summary: summary.summary,
     pricing: summary.pricing,
+    confidence,
     targetUsers: summary.targetUsers,
     sellingPoints: summary.sellingPoints,
     positioning: summary.positioning,
@@ -84,6 +86,7 @@ function fallbackResearch(input: GenerateInput, officialUrl: string, notes: stri
     officialUrl,
     summary: `${input.name} 是一个值得快速了解的 AI 工具，本期先用官网入口和基础信息做快速判断。`,
     pricing: "unknown",
+    confidence: "low",
     targetUsers: ["想快速判断 AI 工具价值的人"],
     sellingPoints: ["先看定位", "再看核心场景", "最后判断是否值得试用"],
     positioning: `${input.name} 是一个值得快速了解的 AI 工具。`,
@@ -94,6 +97,18 @@ function fallbackResearch(input: GenerateInput, officialUrl: string, notes: stri
     unknowns: ["官网文本抓取失败，不能可靠判断产品亮点、价格或适用人群。"],
     notes,
   };
+}
+
+function confidenceFor(pages: ExtractedPage[], evidenceCount: number): ResearchResult["confidence"] {
+  const usefulPages = pages.filter((page) => page.textBlocks.join("").length > 200);
+  const hasDeepPage = pages.some((page) => page.url !== pages[0]?.url);
+  if (usefulPages.length >= 3 && evidenceCount >= 5 && hasDeepPage) {
+    return "high";
+  }
+  if (usefulPages.length >= 1 && evidenceCount >= 2) {
+    return "medium";
+  }
+  return "low";
 }
 
 function normalizeUrl(url: string): string {

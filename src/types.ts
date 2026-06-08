@@ -36,6 +36,7 @@ export type ResearchResult = {
   officialUrl: string;
   summary: string;
   pricing: "unknown" | string;
+  confidence?: "high" | "medium" | "low";
   targetUsers: string[];
   sellingPoints: string[];
   positioning?: string;
@@ -250,6 +251,7 @@ export type RunManifest = {
     research: string;
     creative: string;
     script: string;
+    contentQuality: string;
     assets: string;
     captions: string;
     captionsSrt: string;
@@ -274,6 +276,21 @@ export type RunManifest = {
   };
   checks: OutputValidationCheck[];
   warnings: string[];
+};
+
+export type ContentQualityReport = {
+  schemaVersion: 1;
+  inspectedAt: string;
+  passed: boolean;
+  checks: OutputValidationCheck[];
+  summary: {
+    confidence: ResearchResult["confidence"];
+    sourcePageCount: number;
+    evidenceCount: number;
+    segmentCount: number;
+    hasPriceSegment: boolean;
+    hasWorkflowOrUseCase: boolean;
+  };
 };
 
 export type OutputValidationCheck = {
@@ -314,6 +331,7 @@ export type MvpReadiness = {
     researchSourcePageCount: number;
     pageCandidateCount: number;
     scoredCandidateCount: number;
+    contentQualityPassed?: boolean;
   };
   checks: OutputValidationCheck[];
   deferred: Array<{

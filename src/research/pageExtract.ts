@@ -1,6 +1,9 @@
+import type { PageCandidateKind } from "../types.ts";
+
 export type ExtractedLink = {
   text: string;
   url: string;
+  kind?: PageCandidateKind;
 };
 
 export type ExtractedPage = {
@@ -12,17 +15,24 @@ export type ExtractedPage = {
 };
 
 const RELEVANT_LINK_WORDS = [
-  "pricing",
-  "price",
-  "plans",
   "features",
   "product",
   "docs",
+  "documentation",
+  "guide",
+  "learn",
   "customers",
+  "case studies",
   "enterprise",
   "use cases",
+  "solutions",
   "download",
   "demo",
+  "showcase",
+  "changelog",
+  "pricing",
+  "price",
+  "plans",
 ];
 
 export function extractPage(html: string, url: string): ExtractedPage {
@@ -53,7 +63,7 @@ export function pickRelevantInternalLinks(page: ExtractedPage, limit = 4): Extra
         return false;
       }
     })
-    .map((link) => ({ link, score: scoreLink(link) }))
+    .map((link) => ({ link: { ...link, kind: classifyLink(link) }, score: scoreLink(link) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score);
 
@@ -75,10 +85,35 @@ export function pickRelevantInternalLinks(page: ExtractedPage, limit = 4): Extra
 
 function scoreLink(link: ExtractedLink): number {
   const haystack = `${link.text} ${link.url}`.toLowerCase();
-  return RELEVANT_LINK_WORDS.reduce(
-    (score, word) => score + (haystack.includes(word) ? (word === "pricing" ? 4 : 2) : 0),
+  const keywordScore = RELEVANT_LINK_WORDS.reduce(
+    (score, word) => score + (haystack.includes(word) ? weightForWord(word) : 0),
     0,
   );
+  const kind = classifyLink(link);
+  return keywordScore + (kind && kind !== "other" ? 2 : 0);
+}
+
+export function classifyLink(link: Pick<ExtractedLink, "text" | "url">): PageCandidateKind {
+  const haystack = `${link.text} ${link.url}`.toLowerCase();
+  if (/pricing|price|plans/.test(haystack)) return "pricing";
+  if (/docs|documentation|guide|learn|manual/.test(haystack)) return "docs";
+  if (/demo|showcase|video|watch/.test(haystack)) return "demo";
+  if (/use-cases|use cases|solutions|workflows?/.test(haystack)) return "use_cases";
+  if (/customers?|case-stud|stories/.test(haystack)) return "customers";
+  if (/enterprise|security|trust|sso|soc/.test(haystack)) return "enterprise";
+  if (/download|install|get started/.test(haystack)) return "download";
+  if (/features?|product|platform|agent|composer|tab/.test(haystack)) return "features";
+  return "other";
+}
+
+function weightForWord(word: string): number {
+  if (/docs|documentation|demo|features|product|use cases|solutions/.test(word)) {
+    return 4;
+  }
+  if (/pricing|price|plans/.test(word)) {
+    return 1;
+  }
+  return 2;
 }
 
 function extractTextBlocks(html: string): string[] {
@@ -114,7 +149,7 @@ function extractLinks(html: string, baseUrl: string): ExtractedLink[] {
     const url = resolveUrl(match[1], baseUrl);
     const text = normalizeText(stripTags(match[2]));
     if (url && text.length <= 80) {
-      links.push({ text, url });
+      links.push({ text, url, kind: classifyLink({ text, url }) });
     }
   }
   return uniqueBy(links, (link) => `${link.text}:${link.url}`);

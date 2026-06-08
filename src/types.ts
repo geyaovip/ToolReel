@@ -60,10 +60,23 @@ export type ResearchEvidence = {
 
 export type ResearchSourcePage = {
   url: string;
+  kind?: PageCandidateKind;
   title?: string;
   description?: string;
   extractedTextLength: number;
 };
+
+export type PageCandidateKind =
+  | "homepage"
+  | "features"
+  | "docs"
+  | "demo"
+  | "use_cases"
+  | "customers"
+  | "enterprise"
+  | "download"
+  | "pricing"
+  | "other";
 
 export type ScriptSegment = {
   sceneType: SceneType;
@@ -137,16 +150,18 @@ export type AssetData = {
   imageCandidates?: AssetCandidate[];
   videoCandidates?: AssetCandidate[];
   socialCandidates?: AssetCandidate[];
+  pageCandidates?: AssetCandidate[];
   quoteCandidates?: QuoteCandidate[];
   localRecordings?: AssetCandidate[];
   notes?: string[];
 };
 
 export type AssetCandidate = {
-  type: "logo" | "screenshot" | "image" | "video" | "social" | "recording";
+  type: "logo" | "screenshot" | "image" | "video" | "social" | "recording" | "page";
   url?: string;
   path?: string;
   label?: string;
+  kind?: PageCandidateKind;
   source: "official_site" | "manual" | "third_party";
   confidence: "high" | "medium" | "low";
 };

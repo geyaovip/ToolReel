@@ -17,6 +17,16 @@
       "confidence": "high"
     }
   ],
+  "pageCandidates": [
+    {
+      "type": "page",
+      "kind": "demo",
+      "url": "https://example.com/demo",
+      "label": "Official demo page",
+      "source": "manual",
+      "confidence": "high"
+    }
+  ],
   "localRecordings": [
     {
       "type": "recording",

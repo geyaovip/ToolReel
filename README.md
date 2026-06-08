@@ -32,7 +32,7 @@ TTS output metadata is written to:
 outputs/YYYY-MM-DD-cursor/voice.json
 ```
 
-Recommended male voices for AI tool recommendation videos:
+Recommended male voices for AI tool explainer videos:
 
 ```text
 Chinese (Mandarin)_Radio_Host
@@ -59,8 +59,10 @@ outputs/YYYY-MM-DD-cursor/assets.json
 ```
 
 `assets.json` records homepage metadata, downloaded official-site assets,
-image candidates, video candidates, and social profile/video links discovered
-from the official page. It does not invent quotes or third-party endorsements.
+official page candidates, image candidates, video candidates, and social
+profile/video links discovered from official pages. Links are kept in JSON for
+traceability, but should not be rendered as visible video text. It does not
+invent quotes or third-party endorsements.
 
 To add curated materials such as X/Twitter quotes, third-party videos, official
 demo videos, or local screen recordings, create:

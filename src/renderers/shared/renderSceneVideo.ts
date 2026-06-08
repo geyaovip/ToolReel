@@ -162,7 +162,6 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
   const { scene, assets, outputPath, script } = args;
   const focus = focusLabel(scene);
   const captionLines = timedCaptionLines(args.captions.length ? args.captions : fallbackCaptions(scene));
-  const domain = domainLabel(assets.homepage?.url);
   const titleLines = displayLines(assets.homepage?.title || script.toolName, 18, 2);
   const scrollDistance = 520;
   const filters = [
@@ -193,7 +192,7 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
       color: "white@0.72",
     }),
     drawText({
-      text: domain,
+      text: script.toolName,
       x: "86",
       y: "162",
       size: 48,
@@ -274,17 +273,6 @@ function focusLabel(scene: PlannedScene): string {
     return "记住这个工具";
   }
   return "核心信息";
-}
-
-function domainLabel(url: string | undefined): string {
-  if (!url) {
-    return "official site";
-  }
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-  }
 }
 
 function timedCaptionLines(captions: Caption[]): Array<{ text: string; start: number; end: number; lineIndex: number }> {

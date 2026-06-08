@@ -163,7 +163,7 @@ function buildSceneBeats(
       intent: "快速建立可信来源，并解释官网主打什么",
       visualFocus: "官网入口、首屏定位、产品界面",
       narrationHint: "先看官网入口，只抓定位和可信证据。",
-      onScreenFocus: [displayUrl(research.officialUrl), "官网首屏", "产品气质"],
+      onScreenFocus: ["官网首屏", "产品定位", "产品界面"],
     },
     {
       sceneType: "SELLING_POINT",
@@ -227,12 +227,4 @@ function shortCoverLine(toolName: string, angle: CreativeAngle): string {
 function cleanText(value: string | undefined, maxChars: number): string | undefined {
   const normalized = value?.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
   return normalized && normalized.length <= maxChars ? normalized : undefined;
-}
-
-function displayUrl(value: string): string {
-  try {
-    return new URL(value).hostname.replace(/^www\./, "");
-  } catch {
-    return value;
-  }
 }

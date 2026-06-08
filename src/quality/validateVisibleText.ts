@@ -19,6 +19,7 @@ export function validateVisibleText(
   captions: Caption[],
 ): OutputValidationCheck[] {
   const visibleText = collectVisibleText(script, scenes, captions);
+  const visibleLinks = visibleText.values.filter(containsVisibleLink);
   const scenesMissingCreativeGuidance = scenes.filter(
     (scene) => !scene.intent || !scene.visualFocus || !(scene.onScreenFocus?.length),
   );
@@ -28,6 +29,12 @@ export function validateVisibleText(
       passed: visibleText.violations.length === 0,
       actual: visibleText.violations.join(" | ") || "none",
       expected: "no ellipsis, unknown placeholders, internal template labels, or incomplete fallback text",
+    },
+    {
+      name: "noVisibleLinks",
+      passed: visibleLinks.length === 0,
+      actual: visibleLinks.join(" | ") || "none",
+      expected: "no URLs or bare domains in visible video text",
     },
     {
       name: "sceneGuidancePresent",
@@ -42,7 +49,7 @@ function collectVisibleText(
   script: ScriptData,
   scenes: PlannedScene[],
   captions: Caption[],
-): { violations: string[] } {
+): { values: string[]; violations: string[] } {
   const candidates = [
     script.toolName,
     script.hook,
@@ -71,5 +78,9 @@ function collectVisibleText(
     }
   }
 
-  return { violations: [...violations] };
+  return { values: candidates, violations: [...violations] };
+}
+
+function containsVisibleLink(text: string): boolean {
+  return /https?:\/\/|www\.|(?:^|\s)[a-z0-9-]+\.(?:com|ai|io|dev|app|co|net|org)(?:\s|$|[/?#])/i.test(text);
 }

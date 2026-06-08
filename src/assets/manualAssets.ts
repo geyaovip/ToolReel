@@ -7,6 +7,7 @@ export type ManualAssets = {
   imageCandidates?: AssetCandidate[];
   videoCandidates?: AssetCandidate[];
   socialCandidates?: AssetCandidate[];
+  pageCandidates?: AssetCandidate[];
   quoteCandidates?: QuoteCandidate[];
   localRecordings?: AssetCandidate[];
 };

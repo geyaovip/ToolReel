@@ -22,7 +22,7 @@ export async function generateScript(
       sceneType: "WEBSITE_DEMO",
       title: "先看官网怎么说",
       narration: `先看 ${input.name} 的官网入口，不急着听宣传词，先抓两个信息：它主打什么，以及它想解决什么场景。`,
-      bullets: compactBullets([displayUrl(research.officialUrl), research.sourcePages?.[0]?.title, "官网入口"], 3),
+      bullets: compactBullets([research.sourcePages?.[0]?.title, "官网首屏", "产品定位"], 3),
     },
   ];
 
@@ -154,14 +154,6 @@ function toChineseList(values: string[]): string {
 function fitDisplayText(value: string, maxChars: number): string | undefined {
   const normalized = value.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
   return normalized && normalized.length <= maxChars ? normalized : undefined;
-}
-
-function displayUrl(value: string): string | undefined {
-  try {
-    return new URL(value).hostname.replace(/^www\./, "");
-  } catch {
-    return fitDisplayText(value, 24);
-  }
 }
 
 function escapeRegex(value: string): string {

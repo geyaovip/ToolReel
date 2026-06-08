@@ -9,7 +9,7 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
   const homepage = await fetchExtractedPage(officialUrl, notes);
   if (homepage) {
     pages.push(homepage);
-    const links = pickRelevantInternalLinks(homepage, 4);
+    const links = pickRelevantInternalLinks(homepage, 8);
     for (const link of links) {
       const page = await fetchExtractedPage(link.url, notes);
       if (page) {
@@ -36,6 +36,7 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
     evidence: summary.evidence,
     sourcePages: pages.map((page) => ({
       url: page.url,
+      kind: page.url === officialUrl ? "homepage" : classifyPageKind(page.url, homepage?.links),
       title: page.title,
       description: page.description,
       extractedTextLength: page.textBlocks.join("").length,
@@ -43,6 +44,14 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
     unknowns: summary.unknowns,
     notes,
   };
+}
+
+function classifyPageKind(url: string, links: ExtractedPage["links"] | undefined): ResearchResult["sourcePages"][number]["kind"] {
+  return links?.find((link) => stripUrl(link.url) === stripUrl(url))?.kind ?? "other";
+}
+
+function stripUrl(url: string): string {
+  return url.replace(/#.*$/, "").replace(/\/$/, "");
 }
 
 async function fetchExtractedPage(url: string, notes: string[]): Promise<ExtractedPage | undefined> {

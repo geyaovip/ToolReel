@@ -1,18 +1,24 @@
 import type { AssetData, OutputValidationCheck } from "../types.ts";
 
 export function validateAssetsForMvp(assets: AssetData): OutputValidationCheck[] {
-  const hasWebsiteVisual = isUsableLocalAsset(assets.websiteScreenshot) || isUsableLocalAsset(assets.productScreenshot);
+  const websiteDemoVisual =
+    usableLocalAsset(assets.selectedAssets?.websiteDemoPage?.path) ??
+    usableLocalAsset(assets.productScreenshot) ??
+    usableLocalAsset(assets.websiteScreenshot);
+  const hasWebsiteVisual = Boolean(websiteDemoVisual);
 
   return [
     {
       name: "websiteVisualAssetAvailable",
       passed: hasWebsiteVisual,
-      actual: hasWebsiteVisual ? assets.websiteScreenshot || assets.productScreenshot : "missing",
-      expected: "usable homepage or product screenshot for website demo",
+      actual: websiteDemoVisual ?? "missing",
+      expected: "usable selected page, product, or homepage screenshot for website demo",
     },
   ];
 }
 
-function isUsableLocalAsset(path: string | undefined): boolean {
-  return Boolean(path && path !== "unknown" && !path.startsWith("mock://") && !path.startsWith("http"));
+function usableLocalAsset(path: string | undefined): string | undefined {
+  return path && path !== "unknown" && !path.startsWith("mock://") && !path.startsWith("http")
+    ? path
+    : undefined;
 }

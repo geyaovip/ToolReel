@@ -1,4 +1,4 @@
-import type { CreativeBrief, PlannedScene, ScriptData } from "../types.ts";
+import type { AssetData, CreativeBrief, PlannedScene, ScriptData } from "../types.ts";
 import { slugify } from "../utils/slug.ts";
 
 const DEFAULT_DURATIONS: Record<string, number> = {
@@ -12,7 +12,7 @@ const DEFAULT_DURATIONS: Record<string, number> = {
   CTA: 6,
 };
 
-export function planScenes(script: ScriptData, creative?: CreativeBrief): PlannedScene[] {
+export function planScenes(script: ScriptData, creative?: CreativeBrief, assets?: AssetData): PlannedScene[] {
   const planned = script.segments.map((segment, index) => ({
     index: index + 1,
     id: slugify(segment.sceneType.replaceAll("_", "-")),
@@ -21,6 +21,7 @@ export function planScenes(script: ScriptData, creative?: CreativeBrief): Planne
     narration: segment.narration,
     bullets: displayBullets(segment.bullets ?? [], sceneGuidance(script, creative, segment).onScreenFocus),
     ...sceneGuidance(script, creative, segment),
+    assetSelection: selectSceneAsset(segment.sceneType, assets),
     duration: durationFor(segment),
   }));
   const total = planned.reduce((sum, scene) => sum + scene.duration, 0);
@@ -32,6 +33,48 @@ export function planScenes(script: ScriptData, creative?: CreativeBrief): Planne
   return planned.map((scene, index) =>
     index === planned.length - 1 ? { ...scene, duration: scene.duration + extra } : scene,
   );
+}
+
+function selectSceneAsset(sceneType: ScriptData["segments"][number]["sceneType"], assets: AssetData | undefined) {
+  const selected =
+    sceneType === "WEBSITE_DEMO"
+      ? assets?.selectedAssets?.websiteDemoPage
+      : sceneType === "FEATURE" || sceneType === "SELLING_POINT"
+        ? assets?.selectedAssets?.featurePage
+        : sceneType === "WORKFLOW" || sceneType === "TARGET_USER"
+          ? assets?.selectedAssets?.workflowPage
+          : undefined;
+
+  if (!selected) {
+    if (
+      assets?.websiteScreenshot &&
+      assets.websiteScreenshot !== "unknown" &&
+      ["WEBSITE_DEMO", "SELLING_POINT", "FEATURE", "WORKFLOW", "TARGET_USER"].includes(sceneType)
+    ) {
+      return {
+        pageKind: "homepage" as const,
+        label: "官网首页",
+        score: 20,
+        reasons: ["fallback homepage screenshot"],
+      };
+    }
+    return undefined;
+  }
+
+  return {
+    pageKind: selected.kind,
+    label: cleanAssetLabel(selected.label),
+    score: selected.score,
+    reasons: selected.reasons,
+  };
+}
+
+function cleanAssetLabel(label: string | undefined): string | undefined {
+  const clean = label?.replace(/\s+/g, " ").replace(/[.…]+$/g, "").trim();
+  if (!clean || clean.length > 28 || /https?:\/\/|www\.|[a-z0-9-]+\.(com|ai|io|dev|app)/i.test(clean)) {
+    return undefined;
+  }
+  return clean;
 }
 
 function sceneGuidance(

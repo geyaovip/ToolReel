@@ -300,6 +300,7 @@ assets.json
 - 自动下载官网 icon / Logo 候选。
 - 自动发现 features、docs、demo、use cases、enterprise 等官方深层页面候选，并记录到 `assets.pageCandidates`。
 - 自动记录官网和深层页面中发现的图片、视频、社交链接候选。
+- 自动为素材候选打分并写入 `assets.scoredCandidates` / `assets.selectedAssets`，scene planning 应把选中的页面或素材记录到 `scene.assetSelection`。
 - 可以通过 `assets.manual.json` 或 `TOOLREEL_MANUAL_ASSETS` 合并人工筛选素材。
 - 推特名人评价、三方视频、官方视频、录屏可以作为人工素材输入，但必须记录真实来源，不要编造背书。
 - 对第三方视频和社交内容，第一阶段只记录候选 URL，不自动下载或二次分发。

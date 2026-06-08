@@ -45,7 +45,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const creative = await generateCreativeBrief(input, research);
   const script = await generateScript(input, research, creative);
   const assets = await collectAssets(input);
-  let scenes = planScenes(script, creative).map((scene) => ({
+  let scenes = planScenes(script, creative, assets).map((scene) => ({
     ...scene,
     renderer: selectRenderer(scene.type),
   })) satisfies PlannedScene[];

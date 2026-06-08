@@ -23,6 +23,11 @@ export function validateVisibleText(
   const scenesMissingCreativeGuidance = scenes.filter(
     (scene) => !scene.intent || !scene.visualFocus || !(scene.onScreenFocus?.length),
   );
+  const scenesMissingAssetSelection = scenes.filter(
+    (scene) =>
+      ["WEBSITE_DEMO", "SELLING_POINT", "FEATURE", "WORKFLOW", "TARGET_USER"].includes(scene.type) &&
+      !scene.assetSelection,
+  );
   return [
     {
       name: "noForbiddenVisibleText",
@@ -41,6 +46,12 @@ export function validateVisibleText(
       passed: scenesMissingCreativeGuidance.length === 0,
       actual: scenesMissingCreativeGuidance.map((scene) => scene.id).join(", ") || "all scenes guided",
       expected: "every scene has intent, visualFocus, and onScreenFocus for rendering",
+    },
+    {
+      name: "sceneAssetSelectionPresent",
+      passed: scenesMissingAssetSelection.length === 0,
+      actual: scenesMissingAssetSelection.map((scene) => scene.id).join(", ") || "all key scenes have assets",
+      expected: "website, selling point, feature, workflow, and target user scenes select a page or asset",
     },
   ];
 }

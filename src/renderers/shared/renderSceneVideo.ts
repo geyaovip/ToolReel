@@ -127,7 +127,7 @@ function hasUsableAsset(path: string | undefined): boolean {
 export async function renderSceneVideo(args: RenderSceneVideoArgs): Promise<void> {
   const { scene, script, assets, outputPath, theme } = args;
   await ensureDir(dirname(outputPath));
-  if (scene.type === "WEBSITE_DEMO" && assets.websiteScreenshot && assets.websiteScreenshot !== "unknown") {
+  if (scene.type === "WEBSITE_DEMO" && websiteDemoScreenshot(assets)) {
     await renderWebsiteScreenshotScene(args);
     return;
   }
@@ -160,7 +160,8 @@ export async function renderSceneVideo(args: RenderSceneVideoArgs): Promise<void
 
 async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise<void> {
   const { scene, assets, outputPath, script } = args;
-  const focus = focusLabel(scene);
+  const profile = websiteDemoProfile(scene);
+  const focus = profile.focus;
   const captionLines = timedCaptionLines(args.captions.length ? args.captions : fallbackCaptions(scene));
   const titleLines = displayLines(assets.homepage?.title || script.toolName, 18, 2);
   const scrollDistance = 520;
@@ -170,9 +171,9 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
     "format=yuv420p",
     "drawbox=x=0:y=0:w=1080:h=270:color=0x101820@0.94:t=fill",
     "drawbox=x=0:y=1468:w=1080:h=452:color=0x101820@0.86:t=fill",
-    "drawbox=x=86:y=292:w=908:h=538:color=0x00d4ff@0.30:t=8:enable='between(t,0.9,2.8)'",
-    "drawbox=x=104:y=716:w=872:h=420:color=0x8df5c5@0.28:t=8:enable='between(t,2.8,5.4)'",
-    "drawbox=x=128:y=1100:w=824:h=260:color=white@0.22:t=6:enable='between(t,5.0,8.0)'",
+    `drawbox=x=${profile.boxes[0].x}:y=${profile.boxes[0].y}:w=${profile.boxes[0].w}:h=${profile.boxes[0].h}:color=0x00d4ff@0.30:t=8:enable='between(t,0.9,2.8)'`,
+    `drawbox=x=${profile.boxes[1].x}:y=${profile.boxes[1].y}:w=${profile.boxes[1].w}:h=${profile.boxes[1].h}:color=0x8df5c5@0.28:t=8:enable='between(t,2.8,5.4)'`,
+    `drawbox=x=${profile.boxes[2].x}:y=${profile.boxes[2].y}:w=${profile.boxes[2].w}:h=${profile.boxes[2].h}:color=white@0.22:t=6:enable='between(t,5.0,8.0)'`,
     "drawbox=x=86:y=292:w=908:h=538:color=black@0.08:t=fill:enable='between(t,0.9,2.8)'",
     "drawbox=x=104:y=716:w=872:h=420:color=black@0.06:t=fill:enable='between(t,2.8,5.4)'",
     `drawbox=x=70:y=90:w=940:h=8:color=0x00d4ff@0.95:t=fill`,
@@ -185,7 +186,7 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
       color: "white@0.82",
     }),
     drawText({
-      text: "官网入口",
+      text: profile.kicker,
       x: "86",
       y: "122",
       size: 30,
@@ -230,7 +231,7 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
     "-loop",
     "1",
     "-i",
-    assets.websiteScreenshot,
+    websiteDemoScreenshot(assets) ?? assets.websiteScreenshot,
     "-f",
     "lavfi",
     "-i",
@@ -254,6 +255,14 @@ async function renderWebsiteScreenshotScene(args: RenderSceneVideoArgs): Promise
   ]);
 }
 
+function websiteDemoScreenshot(assets: AssetData): string | undefined {
+  const selected = assets.selectedAssets?.websiteDemoPage?.path;
+  if (hasUsableAsset(selected)) {
+    return selected;
+  }
+  return hasUsableAsset(assets.websiteScreenshot) ? assets.websiteScreenshot : undefined;
+}
+
 function fallbackCaptions(scene: PlannedScene): Caption[] {
   return [{ start: 0, end: scene.duration, text: scene.narration, sceneId: scene.id, sceneIndex: scene.index }];
 }
@@ -273,6 +282,67 @@ function focusLabel(scene: PlannedScene): string {
     return "记住这个工具";
   }
   return "核心信息";
+}
+
+function websiteDemoProfile(scene: PlannedScene): {
+  kicker: string;
+  focus: string;
+  boxes: Array<{ x: number; y: number; w: number; h: number }>;
+} {
+  const kind = scene.assetSelection?.pageKind;
+  if (kind === "demo") {
+    return {
+      kicker: "演示入口",
+      focus: "看产品如何展示",
+      boxes: [
+        { x: 94, y: 300, w: 892, h: 500 },
+        { x: 150, y: 700, w: 780, h: 360 },
+        { x: 160, y: 1060, w: 760, h: 300 },
+      ],
+    };
+  }
+  if (kind === "docs") {
+    return {
+      kicker: "文档证据",
+      focus: "看功能如何落地",
+      boxes: [
+        { x: 86, y: 286, w: 908, h: 380 },
+        { x: 110, y: 650, w: 860, h: 420 },
+        { x: 130, y: 1030, w: 820, h: 330 },
+      ],
+    };
+  }
+  if (kind === "features") {
+    return {
+      kicker: "功能页面",
+      focus: "看核心能力",
+      boxes: [
+        { x: 86, y: 292, w: 908, h: 538 },
+        { x: 104, y: 716, w: 872, h: 420 },
+        { x: 128, y: 1100, w: 824, h: 260 },
+      ],
+    };
+  }
+  if (kind === "enterprise") {
+    return {
+      kicker: "团队场景",
+      focus: "看安全和协作",
+      boxes: [
+        { x: 86, y: 300, w: 908, h: 460 },
+        { x: 116, y: 740, w: 848, h: 360 },
+        { x: 128, y: 1090, w: 824, h: 280 },
+      ],
+    };
+  }
+  return {
+    kicker: "官网入口",
+    focus: focusLabel(scene),
+    boxes: [
+      { x: 86, y: 292, w: 908, h: 538 },
+      { x: 104, y: 716, w: 872, h: 420 },
+      { x: 128, y: 1100, w: 824, h: 260 },
+    ],
+  };
 }
 
 function timedCaptionLines(captions: Caption[]): Array<{ text: string; start: number; end: number; lineIndex: number }> {

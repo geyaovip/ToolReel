@@ -151,6 +151,13 @@ export type AssetData = {
   videoCandidates?: AssetCandidate[];
   socialCandidates?: AssetCandidate[];
   pageCandidates?: AssetCandidate[];
+  scoredCandidates?: ScoredAssetCandidate[];
+  selectedAssets?: {
+    websiteDemoPage?: ScoredAssetCandidate;
+    featurePage?: ScoredAssetCandidate;
+    workflowPage?: ScoredAssetCandidate;
+    demoVideo?: ScoredAssetCandidate;
+  };
   quoteCandidates?: QuoteCandidate[];
   localRecordings?: AssetCandidate[];
   notes?: string[];
@@ -164,6 +171,11 @@ export type AssetCandidate = {
   kind?: PageCandidateKind;
   source: "official_site" | "manual" | "third_party";
   confidence: "high" | "medium" | "low";
+};
+
+export type ScoredAssetCandidate = AssetCandidate & {
+  score: number;
+  reasons: string[];
 };
 
 export type QuoteCandidate = {
@@ -204,6 +216,12 @@ export type PlannedScene = {
   intent?: string;
   visualFocus?: string;
   onScreenFocus?: string[];
+  assetSelection?: {
+    pageKind?: PageCandidateKind;
+    label?: string;
+    score?: number;
+    reasons?: string[];
+  };
   duration: number;
   renderer?: RendererName;
   outputPath?: string;

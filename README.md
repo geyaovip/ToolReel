@@ -64,6 +64,10 @@ profile/video links discovered from official pages. Links are kept in JSON for
 traceability, but should not be rendered as visible video text. It does not
 invent quotes or third-party endorsements.
 
+Asset candidates are scored into `scoredCandidates`, and default page/material
+choices are written to `selectedAssets`. Scene planning copies those choices
+into `scenes.json` as `assetSelection`.
+
 To add curated materials such as X/Twitter quotes, third-party videos, official
 demo videos, or local screen recordings, create:
 

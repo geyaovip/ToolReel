@@ -6,8 +6,10 @@ import { downloadAsset } from "./download.ts";
 import { extractPageMetadata } from "./html.ts";
 import { mergeManualAssets, readManualAssets } from "./manualAssets.ts";
 import { extractPage, pickRelevantInternalLinks } from "../research/pageExtract.ts";
+import { scoreAssets } from "./scoreAssets.ts";
 import type { AssetCandidate, AssetData, GenerateInput } from "../types.ts";
 import { ensureDir } from "../utils/file.ts";
+import { slugify } from "../utils/slug.ts";
 
 export async function collectAssets(input: GenerateInput): Promise<AssetData> {
   const assetsDir = join(input.outputDir, "assets");
@@ -125,7 +127,7 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
     ),
   ];
 
-  return {
+  const scoredAssets = scoreAssets({
     logo: logoPath ?? logoCandidates[0]?.url ?? "unknown",
     websiteScreenshot: screenshotPath ?? "unknown",
     productScreenshot: screenshotPath ?? "unknown",
@@ -160,7 +162,9 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
     quoteCandidates: mergeManualAssets(existing?.quoteCandidates ?? [], manual?.quoteCandidates),
     localRecordings: mergeManualAssets(existing?.localRecordings ?? [], manual?.localRecordings),
     notes,
-  };
+  });
+
+  return await attachSelectedPageScreenshot(scoredAssets, assetsDir, notes);
 }
 
 function buildPageCandidates(html: string, homepageUrl: string): AssetCandidate[] {
@@ -207,6 +211,50 @@ function labelForKind(kind: AssetCandidate["kind"]): string {
   if (kind === "download") return "Download page";
   if (kind === "pricing") return "Pricing page";
   return "Official page";
+}
+
+async function attachSelectedPageScreenshot(
+  assets: AssetData,
+  assetsDir: string,
+  notes: string[],
+): Promise<AssetData> {
+  const selected = assets.selectedAssets?.websiteDemoPage;
+  if (!selected?.url) {
+    return assets;
+  }
+
+  const fileName = `selected-${slugify(selected.kind ?? "page")}-${slugify(selected.label ?? "website-demo")}.png`;
+  const outputPath = join(assetsDir, fileName);
+  const existingPath = existingFile(outputPath);
+  const screenshotPath =
+    (shouldRefreshAssets() || !existingPath
+      ? await tryCaptureScreenshot(selected.url, outputPath, notes, Boolean(existingPath))
+      : existingPath) || existingPath;
+
+  if (!screenshotPath) {
+    return assets;
+  }
+
+  const selectedWithPath = { ...selected, path: screenshotPath };
+  return {
+    ...assets,
+    productScreenshot: screenshotPath,
+    selectedAssets: {
+      ...assets.selectedAssets,
+      websiteDemoPage: selectedWithPath,
+    },
+    imageCandidates: dedupeCandidates([
+      {
+        type: "screenshot",
+        path: screenshotPath,
+        label: `${selected.label ?? labelForKind(selected.kind)} screenshot`,
+        kind: selected.kind,
+        source: "official_site",
+        confidence: "high",
+      },
+      ...(assets.imageCandidates ?? []),
+    ]),
+  };
 }
 
 function normalizeUrl(url: string): string {

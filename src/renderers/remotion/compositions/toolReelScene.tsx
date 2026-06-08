@@ -11,6 +11,7 @@ const palette = {
   muted: "rgba(248,251,255,0.72)",
   accent: "#8df5c5",
   blue: "#00d4ff",
+  amber: "#ffd166",
 };
 
 function bulletLines(text: string): string[] {
@@ -42,6 +43,22 @@ function focusLabel(scene: ToolReelSceneProps["scene"]): string {
   return "核心信息";
 }
 
+function sceneTone(scene: ToolReelSceneProps["scene"]): { accent: string; label: string } {
+  if (scene.type === "WORKFLOW") {
+    return { accent: palette.amber, label: "场景" };
+  }
+  if (scene.type === "FEATURE") {
+    return { accent: palette.blue, label: "细节" };
+  }
+  if (scene.type === "CTA") {
+    return { accent: palette.accent, label: "总结" };
+  }
+  if (scene.type === "SELLING_POINT") {
+    return { accent: palette.accent, label: "核心" };
+  }
+  return { accent: scene.type === "WEBSITE_DEMO" ? palette.blue : palette.accent, label: "科普" };
+}
+
 const baseStyles = {
   fontFamily:
     '"Hiragino Sans GB", "STHeiti", "PingFang SC", "Arial Unicode MS", Arial, sans-serif',
@@ -54,7 +71,8 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
   const currentTime = frame / fps;
   const enter = spring({ frame, fps, config: { damping: 18, stiffness: 95 } });
   const fade = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
-  const accent = scene.type === "WEBSITE_DEMO" ? palette.blue : palette.accent;
+  const tone = sceneTone(scene);
+  const accent = tone.accent;
   const activeCaption =
     captions.find((caption) => currentTime >= caption.start && currentTime < caption.end) ??
     captions[captions.length - 1];
@@ -92,6 +110,22 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
       <div
         style={{
           position: "absolute",
+          top: 118,
+          left: 86,
+          padding: "7px 14px",
+          background: `${accent}22`,
+          color: accent,
+          fontSize: 24,
+          lineHeight: 1,
+          opacity: fade,
+        }}
+      >
+        {tone.label}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
           top: 106,
           right: 72,
           maxWidth: 470,
@@ -113,8 +147,8 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
           top: 174,
           left: 86,
           maxWidth: 910,
-          padding: "8px 18px",
-          background: "rgba(0,0,0,0.24)",
+          padding: "10px 18px",
+          background: "rgba(0,0,0,0.30)",
           fontSize: scene.title.length > 14 ? 56 : 70,
           lineHeight: 1.05,
           transform: `translateY(${(1 - enter) * 24}px)`,
@@ -249,6 +283,7 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
               padding: "14px 28px",
               boxSizing: "border-box",
               background: "rgba(255,255,255,0.10)",
+              borderLeft: `8px solid ${accent}`,
               fontSize: 34,
               lineHeight: 1.18,
               display: "flex",
@@ -300,6 +335,25 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
             {line}
           </div>
         ))}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          left: 86,
+          right: 86,
+          bottom: 102,
+          height: 3,
+          background: "rgba(255,255,255,0.12)",
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.round(((scene.index || 1) / Math.max(1, script.segments.length)) * 100)}%`,
+            height: "100%",
+            background: accent,
+          }}
+        />
       </div>
 
     </AbsoluteFill>

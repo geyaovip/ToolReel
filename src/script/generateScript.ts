@@ -161,6 +161,10 @@ function comparisonSegments(
   useCases: string[],
   hook: string,
 ): ScriptSegment[] {
+  if (research.comparisonTargets?.length) {
+    return multiToolComparisonSegments(input, research, highlights, useCases, hook);
+  }
+
   const dimension = highlights[0]?.title ?? research.positioning ?? "核心能力";
   const scenario = useCases[0] ?? "真实工作流";
   return [
@@ -199,6 +203,66 @@ function comparisonSegments(
       title: "一句话结论",
       narration: `这类对比的重点不是争第一，而是找到哪个工具最适合你的任务。这个判断，比榜单排名更有用。`,
       bullets: ["不争第一", "匹配任务", "再决定试用"],
+    },
+  ];
+}
+
+function multiToolComparisonSegments(
+  input: GenerateInput,
+  research: ResearchResult,
+  highlights: Array<{ title: string; detail: string; sourceUrl: string }>,
+  useCases: string[],
+  hook: string,
+): ScriptSegment[] {
+  const tools = [input.name, ...(research.comparisonTargets ?? []).map((target) => target.toolName)];
+  const title = comparisonTitle(tools);
+  const primaryPositioning = research.positioning ?? research.summary;
+  const targetPositioning = (research.comparisonTargets ?? [])
+    .map((target) => `${target.toolName}：${target.positioning ?? target.summary}`)
+    .map((value) => fitDisplayText(value, 32))
+    .filter((value): value is string => Boolean(value));
+  const comparisonBasis = targetPositioning.length
+    ? targetPositioning
+    : compactBullets([primaryPositioning, highlights[0]?.title, useCases[0]], 3);
+  const scenario = useCases[0] ?? research.comparisonTargets?.flatMap((target) => target.useCases)[0] ?? "真实任务";
+  const dimension = highlights[0]?.title ?? "官方定位";
+
+  return [
+    {
+      sceneType: "HOOK",
+      title,
+      narration: `${hook} 这条只做选择参考，不做无证据排名；先看它们各自服务什么任务。`,
+      bullets: compactBullets([...tools, "不做无证据排名"], 4),
+    },
+    {
+      sceneType: "COMPARISON",
+      title: "先看官方定位",
+      narration: `先看官方定位。${input.name} 可以理解成 ${shortClause(primaryPositioning)}；其他工具也要先按定位拆开看。`,
+      bullets: compactBullets([`${input.name}：${primaryPositioning}`, ...comparisonBasis], 4),
+    },
+    {
+      sceneType: "COMPARISON",
+      title: "再看选择维度",
+      narration: `第二步看选择维度。这里重点不是谁更强，而是 ${dimension} 和你的任务是不是贴合。`,
+      bullets: compactBullets([dimension, scenario, "按任务匹配"], 4),
+    },
+    {
+      sceneType: "WORKFLOW",
+      title: "放进同一场景",
+      narration: `第三步放进同一个场景里看。如果你的任务是 ${scenario}，就优先试最贴近这个流程的那个。`,
+      bullets: compactBullets([scenario, "同一场景比较", "先小范围试"], 4),
+    },
+    {
+      sceneType: "RECOMMENDATION",
+      title: "怎么做选择",
+      narration: `最后给判断方式：先排除定位不匹配的，再选一个最贴近当前任务的工具跑一遍。这个比收藏一堆名字更有效。`,
+      bullets: ["排除不匹配", "选一个先跑", "再决定长期用"],
+    },
+    {
+      sceneType: "CTA",
+      title: "一句话结论",
+      narration: `对比工具不要先问谁赢。先问你的任务是什么，再看哪个工具的定位和证据最接近这个任务。`,
+      bullets: ["先看任务", "再看定位", "最后看证据"],
     },
   ];
 }
@@ -399,6 +463,27 @@ function toChineseList(values: string[]): string {
     return `${clean[0]}，以及${clean[1]}`;
   }
   return `${clean.slice(0, -1).join("、")}，以及${clean.at(-1)}`;
+}
+
+function comparisonTitle(tools: string[]): string {
+  const clean = tools.filter(Boolean).slice(0, 3);
+  if (clean.length <= 1) {
+    return `${clean[0] ?? "工具"} 怎么选`;
+  }
+  if (clean.length === 2) {
+    return `${clean[0]} vs ${clean[1]}`;
+  }
+  return `${clean[0]} 等工具怎么选`;
+}
+
+function shortClause(value: string): string {
+  return fitDisplayText(
+    value
+      .replace(/[。.!！?？]$/, "")
+      .replace(/^.+?是一个?/, "")
+      .replace(/^.+?是一款/, ""),
+    34,
+  ) ?? "一个需要按场景判断的工具";
 }
 
 function fitDisplayText(value: string, maxChars: number): string | undefined {

@@ -146,7 +146,7 @@ function requiredScenesFor(videoType: VideoType): SceneType[] {
     return ["HOOK", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL", "WORKFLOW", "CTA"];
   }
   if (videoType === "comparison") {
-    return ["HOOK", "WEBSITE_DEMO", "COMPARISON", "RECOMMENDATION", "CTA"];
+    return ["HOOK", "COMPARISON", "WORKFLOW", "RECOMMENDATION", "CTA"];
   }
   if (videoType === "top_list") {
     return ["HOOK", "TOOL_LIST", "WORKFLOW", "RECOMMENDATION", "CTA"];

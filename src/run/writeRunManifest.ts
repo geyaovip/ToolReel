@@ -64,6 +64,7 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
       voiceProvider: args.voice.provider,
       assetSource: args.assets.source,
       researchSourcePageCount: args.research.sourcePages?.length ?? 0,
+      comparisonTargetCount: args.research.comparisonTargets?.length ?? 0,
       unknownCount: args.research.unknowns?.length ?? 0,
       skippedSceneCount: args.scenes.filter((scene) => scene.renderStatus === "skipped").length,
     },

@@ -6,6 +6,11 @@ export type VideoType =
   | "website_demo"
   | "update_news";
 
+export type ToolInput = {
+  name: string;
+  url: string;
+};
+
 export type SceneType =
   | "HOOK"
   | "PROBLEM"
@@ -29,6 +34,7 @@ export type GenerateInput = {
   url: string;
   type: VideoType;
   topic?: string;
+  compareTargets?: ToolInput[];
   createdAt: string;
   outputDir: string;
 };
@@ -47,8 +53,22 @@ export type ResearchResult = {
   useCases?: string[];
   evidence?: ResearchEvidence[];
   sourcePages?: ResearchSourcePage[];
+  comparisonTargets?: ComparisonTargetResearch[];
   unknowns?: string[];
   notes?: string[];
+};
+
+export type ComparisonTargetResearch = {
+  toolName: string;
+  officialUrl: string;
+  summary: string;
+  positioning?: string;
+  confidence?: ResearchResult["confidence"];
+  highlights: ResearchHighlight[];
+  useCases: string[];
+  sourcePageCount: number;
+  evidenceCount: number;
+  unknowns?: string[];
 };
 
 export type ResearchInsightCategory =
@@ -313,6 +333,7 @@ export type RunManifest = {
     voiceProvider: VoiceProvider;
     assetSource: AssetData["source"];
     researchSourcePageCount: number;
+    comparisonTargetCount: number;
     unknownCount: number;
     skippedSceneCount: number;
   };

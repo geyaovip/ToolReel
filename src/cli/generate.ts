@@ -1,10 +1,11 @@
 import { runPipeline } from "../pipeline/runPipeline.ts";
-import type { VideoType } from "../types.ts";
+import type { ToolInput, VideoType } from "../types.ts";
 
 type CliArgs = {
   name?: string;
   url?: string;
   topic?: string;
+  compare?: string;
   type?: VideoType;
 };
 
@@ -19,12 +20,13 @@ function parseArgs(argv: string[]): CliArgs {
     if (rawKey === "name") parsed.name = value;
     if (rawKey === "url") parsed.url = value;
     if (rawKey === "topic") parsed.topic = value;
+    if (rawKey === "compare") parsed.compare = value;
     if (rawKey === "type") parsed.type = value as VideoType;
   }
   return parsed;
 }
 
-function requireArgs(args: CliArgs): { name: string; url: string; topic?: string; type: VideoType } {
+function requireArgs(args: CliArgs): { name: string; url: string; topic?: string; compareTargets?: ToolInput[]; type: VideoType } {
   const type = args.type ?? "product_pick";
   if (type === "top_list") {
     const topic = args.topic || args.name;
@@ -49,8 +51,34 @@ function requireArgs(args: CliArgs): { name: string; url: string; topic?: string
     name: args.name,
     url: args.url,
     topic: args.topic,
+    compareTargets: parseCompareTargets(args.compare),
     type,
   };
+}
+
+function parseCompareTargets(value: string | undefined): ToolInput[] | undefined {
+  const targets = value
+    ?.split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const separator = item.indexOf("=");
+      if (separator === -1) {
+        throw new Error(
+          'Use --compare="Tool A=https://example.com,Tool B=https://example.org" for comparison videos.',
+        );
+      }
+      const name = item.slice(0, separator).trim();
+      const url = item.slice(separator + 1).trim();
+      if (!name || !url) {
+        throw new Error(
+          'Use --compare="Tool A=https://example.com,Tool B=https://example.org" for comparison videos.',
+        );
+      }
+      return { name, url };
+    });
+
+  return targets?.length ? targets : undefined;
 }
 
 async function main(): Promise<void> {

@@ -18,9 +18,11 @@ const DEFAULT_DURATIONS: Record<string, number> = {
 };
 
 export function planScenes(script: ScriptData, creative?: CreativeBrief, assets?: AssetData): PlannedScene[] {
+  const sceneTypeCounts = countSceneIds(script);
+  const seenSceneIds = new Map<string, number>();
   const planned = script.segments.map((segment, index) => ({
     index: index + 1,
-    id: slugify(segment.sceneType.replaceAll("_", "-")),
+    id: uniqueSceneId(segment.sceneType, sceneTypeCounts, seenSceneIds),
     type: segment.sceneType,
     title: segment.title,
     narration: segment.narration,
@@ -38,6 +40,34 @@ export function planScenes(script: ScriptData, creative?: CreativeBrief, assets?
   return planned.map((scene, index) =>
     index === planned.length - 1 ? { ...scene, duration: scene.duration + extra } : scene,
   );
+}
+
+function countSceneIds(script: ScriptData): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const segment of script.segments) {
+    const id = baseSceneId(segment.sceneType);
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function uniqueSceneId(
+  sceneType: ScriptData["segments"][number]["sceneType"],
+  counts: Map<string, number>,
+  seen: Map<string, number>,
+): string {
+  const base = baseSceneId(sceneType);
+  if ((counts.get(base) ?? 0) <= 1) {
+    return base;
+  }
+
+  const next = (seen.get(base) ?? 0) + 1;
+  seen.set(base, next);
+  return `${base}-${next}`;
+}
+
+function baseSceneId(sceneType: ScriptData["segments"][number]["sceneType"]): string {
+  return slugify(sceneType.replaceAll("_", "-"));
 }
 
 function selectSceneAsset(sceneType: ScriptData["segments"][number]["sceneType"], assets: AssetData | undefined) {

@@ -1,11 +1,31 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { GenerateInput, ResearchResult } from "../types.ts";
+import type { ComparisonTargetResearch, GenerateInput, ResearchResult, ToolInput } from "../types.ts";
 import { extractPage, pickRelevantInternalLinks, type ExtractedPage } from "./pageExtract.ts";
 import { summarizePages } from "./summarize.ts";
 import { slugify } from "../utils/slug.ts";
+import { writeJson } from "../utils/file.ts";
+
+const RESEARCH_CACHE_DIR = join("outputs", "_research-cache");
 
 export async function researchTool(input: GenerateInput): Promise<ResearchResult> {
+  const primary = await researchSingleTool(input);
+  if (input.type !== "comparison" || !input.compareTargets?.length || !input.url.trim()) {
+    return primary;
+  }
+
+  const comparisonTargets = await researchComparisonTargets(input, input.compareTargets);
+  return {
+    ...primary,
+    comparisonTargets,
+    notes: [
+      ...(primary.notes ?? []),
+      `Comparison research collected for ${comparisonTargets.length} additional tool(s).`,
+    ],
+  };
+}
+
+async function researchSingleTool(input: GenerateInput): Promise<ResearchResult> {
   if (!input.url.trim()) {
     return topicResearch(input);
   }
@@ -35,7 +55,7 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
 
   const summary = summarizePages(input.name, pages);
   const confidence = confidenceFor(pages, summary.evidence.length);
-  return {
+  const research = {
     toolName: input.name,
     officialUrl,
     summary: summary.summary,
@@ -58,17 +78,67 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
     unknowns: summary.unknowns,
     notes,
   };
+  await cacheResearch(research);
+  return research;
+}
+
+async function researchComparisonTargets(
+  input: GenerateInput,
+  targets: ToolInput[],
+): Promise<ComparisonTargetResearch[]> {
+  const uniqueTargets = targets
+    .filter((target) => target.name.trim() && target.url.trim())
+    .filter((target, index, array) => {
+      const key = `${target.name.trim().toLowerCase()}|${target.url.trim().toLowerCase()}`;
+      return (
+        array.findIndex((item) => {
+          const itemKey = `${item.name.trim().toLowerCase()}|${item.url.trim().toLowerCase()}`;
+          return itemKey === key;
+        }) === index
+      );
+    })
+    .slice(0, 3);
+
+  const results: ComparisonTargetResearch[] = [];
+  for (const target of uniqueTargets) {
+    const targetResearch = await researchSingleTool({
+      ...input,
+      name: target.name,
+      url: target.url,
+      compareTargets: undefined,
+    });
+    results.push(toComparisonTargetResearch(targetResearch));
+  }
+  return results;
+}
+
+function toComparisonTargetResearch(research: ResearchResult): ComparisonTargetResearch {
+  return {
+    toolName: research.toolName,
+    officialUrl: research.officialUrl,
+    summary: research.summary,
+    positioning: research.positioning,
+    confidence: research.confidence,
+    highlights: (research.highlights ?? []).slice(0, 3),
+    useCases: (research.useCases ?? []).slice(0, 3),
+    sourcePageCount: research.sourcePages?.length ?? 0,
+    evidenceCount: research.evidence?.length ?? 0,
+    unknowns: research.unknowns,
+  };
 }
 
 async function reusableResearch(input: GenerateInput, notes: string[]): Promise<ResearchResult | undefined> {
   const slug = slugify(input.name);
   try {
     const entries = await readdir("outputs", { withFileTypes: true });
-    const candidates = entries
-      .filter((entry) => entry.isDirectory() && entry.name.includes(slug) && entry.name !== "_asset-cache")
-      .map((entry) => join("outputs", entry.name, "research.json"))
-      .sort()
-      .reverse();
+    const candidates = [
+      join(RESEARCH_CACHE_DIR, `${slug}.json`),
+      ...entries
+        .filter((entry) => entry.isDirectory() && entry.name.includes(slug) && entry.name !== "_asset-cache")
+        .map((entry) => join("outputs", entry.name, "research.json"))
+        .sort()
+        .reverse(),
+    ];
 
     for (const path of candidates) {
       if (path.startsWith(input.outputDir)) {
@@ -94,6 +164,16 @@ async function reusableResearch(input: GenerateInput, notes: string[]): Promise<
     // No previous outputs are available yet.
   }
   return undefined;
+}
+
+async function cacheResearch(research: ResearchResult): Promise<void> {
+  if (!isReusableResearch(research)) {
+    return;
+  }
+  await writeJson(join(RESEARCH_CACHE_DIR, `${slugify(research.toolName)}.json`), {
+    ...research,
+    notes: [...(research.notes ?? []), "Cached reusable research artifact."],
+  });
 }
 
 function isReusableResearch(research: ResearchResult): boolean {

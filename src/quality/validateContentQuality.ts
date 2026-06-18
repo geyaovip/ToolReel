@@ -35,6 +35,10 @@ export function validateContentQuality(
   const longEnglishLines = text.filter(hasLongEnglishRun);
   const insightCategories = new Set((research.insights ?? []).map((item) => item.category));
   const requiresSourceCoverage = script.videoType !== "top_list";
+  const comparisonTargets = research.comparisonTargets ?? [];
+  const weakComparisonTargets = comparisonTargets.filter(
+    (target) => target.sourcePageCount < 1 || target.evidenceCount < 1,
+  );
 
   const checks = [
     check("researchConfidencePresent", Boolean(research.confidence), research.confidence ?? "missing", "high|medium|low"),
@@ -66,6 +70,12 @@ export function validateContentQuality(
     ),
     check("creativeAngleSelected", Boolean(creative.selectedAngle?.id), creative.selectedAngle?.id ?? "missing", "selected angle"),
     check("sceneBeatsPresent", creative.sceneBeats.length >= 4, creative.sceneBeats.length, ">=4"),
+    check(
+      "comparisonTargetsEvidence",
+      script.videoType !== "comparison" || !comparisonTargets.length || weakComparisonTargets.length === 0,
+      weakComparisonTargets.map((target) => target.toolName).join(", ") || "ok",
+      "each compared tool has source page and evidence",
+    ),
     check("noPriceSegment", !hasPriceSegment, hasPriceSegment, false),
     check("workflowOrUseCasePresent", hasWorkflowOrUseCase, hasWorkflowOrUseCase, true),
     check("noUnsupportedCommercialClaims", unsupportedClaims.length === 0, unsupportedClaims.join(" | ") || "none", "no unsupported price, rank, user, funding claims"),

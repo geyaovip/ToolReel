@@ -20,7 +20,7 @@ import { planScenes } from "../scenes/planScenes.ts";
 import { generateScript } from "../script/generateScript.ts";
 import { captionsToSrt, fitSceneDurationsToVoice, generateCaptions } from "../subtitles/generateCaptions.ts";
 import { generateVoice } from "../tts/generateVoice.ts";
-import type { Caption, GenerateInput, PipelineResult, PlannedScene, ScriptData, VideoType, VoiceData } from "../types.ts";
+import type { Caption, GenerateInput, PipelineResult, PlannedScene, ScriptData, ToolInput, VideoType, VoiceData } from "../types.ts";
 import { ensureDir, writeJson } from "../utils/file.ts";
 import { slugify } from "../utils/slug.ts";
 import { todayId } from "../utils/time.ts";
@@ -29,6 +29,7 @@ type RunPipelineArgs = {
   name: string;
   url: string;
   topic?: string;
+  compareTargets?: ToolInput[];
   type: VideoType;
 };
 
@@ -43,6 +44,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     url: args.url,
     type: args.type,
     topic: "topic" in args ? args.topic : undefined,
+    compareTargets: args.compareTargets,
     createdAt: new Date().toISOString(),
     outputDir,
   };

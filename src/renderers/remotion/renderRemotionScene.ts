@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { bundle } from "@remotion/bundler";
@@ -9,12 +8,12 @@ import { ensureDir } from "../../utils/file.ts";
 import { runFfmpeg } from "../../utils/ffmpeg.ts";
 import { slugify } from "../../utils/slug.ts";
 import { sceneFileName } from "../../utils/text.ts";
+import { cleanupStaleBrowserProfiles } from "../../utils/browser.ts";
 
 const REMOTION_ENTRY = "src/renderers/remotion/compositions/index.ts";
 const REMOTION_COMPOSITION_ID = "ToolReelScene";
 const REMOTION_BUNDLE_DIR = resolve(".remotion/bundle");
 const REMOTION_PUBLIC_ASSET_DIR = "remotion-assets";
-const LOCAL_CHROME_WRAPPER = resolve("scripts/remotion-chrome-wrapper.sh");
 
 let bundledServeUrl: Promise<string> | undefined;
 
@@ -70,6 +69,7 @@ async function renderWithRetry({
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
+      await cleanupStaleBrowserProfiles();
       const serveUrl = await getBundledServeUrl();
       const remotionRuntime = getRemotionRuntimeOptions();
       const composition = await selectComposition({
@@ -108,6 +108,7 @@ async function renderWithRetry({
       console.warn(`Remotion render attempt ${attempt} failed for ${scene.id}; retrying with a fresh bundle.`);
       await wait(1200 * attempt);
       await resetRemotionBundle();
+      await cleanupStaleBrowserProfiles();
     }
   }
 
@@ -216,23 +217,15 @@ function getRemotionRuntimeOptions(): {
 } {
   const rawPort = process.env.REMOTION_RENDER_PORT?.trim();
   const port = rawPort ? Number(rawPort) : undefined;
-  const browserExecutable =
-    process.env.REMOTION_CHROME_EXECUTABLE?.trim() || getDefaultBrowserExecutable();
+  const browserExecutable = process.env.REMOTION_CHROME_EXECUTABLE?.trim() || undefined;
 
   return {
     ...(browserExecutable ? { browserExecutable } : {}),
     ...(Number.isFinite(port) ? { port } : {}),
-    chromeMode:
-      process.env.REMOTION_CHROME_MODE === "chrome-for-testing" || browserExecutable
-        ? "chrome-for-testing"
-        : "headless-shell",
+    chromeMode: browserExecutable ? "chrome-for-testing" : "headless-shell",
     chromiumOptions: {
       gl: "angle",
       ignoreCertificateErrors: true,
     },
   };
-}
-
-function getDefaultBrowserExecutable(): string | undefined {
-  return existsSync(LOCAL_CHROME_WRAPPER) ? LOCAL_CHROME_WRAPPER : undefined;
 }

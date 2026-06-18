@@ -3,10 +3,10 @@ import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { ensureDir } from "../utils/file.ts";
+import { cleanupStaleBrowserProfiles, commonHeadlessChromeFlags, MACOS_CHROME_EXECUTABLE } from "../utils/browser.ts";
 
 const DEFAULT_CHROME_EXECUTABLE = resolve("scripts/remotion-chrome-wrapper.sh");
-const MACOS_CHROME_EXECUTABLE = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const SCREENSHOT_TIMEOUT_MS = Number(process.env.TOOLREEL_SCREENSHOT_TIMEOUT_MS || 20000);
+const SCREENSHOT_TIMEOUT_MS = Number(process.env.TOOLREEL_SCREENSHOT_TIMEOUT_MS || 60000);
 const MIN_SCREENSHOT_BYTES = 10_000;
 
 type ScreenshotAttempt = {
@@ -22,6 +22,7 @@ const SCREENSHOT_ATTEMPTS: ScreenshotAttempt[] = [
 
 export async function captureWebsiteScreenshot(url: string, outputPath: string): Promise<string> {
   await ensureDir(dirname(outputPath));
+  await cleanupStaleBrowserProfiles();
   const chrome = await firstUsableChrome();
   let lastError: unknown;
 
@@ -50,14 +51,8 @@ async function captureWithChrome(
     await runChrome(
       [
         "--headless=new",
-        "--disable-gpu",
-        "--disable-crash-reporter",
-        "--disable-crashpad",
+        ...commonHeadlessChromeFlags(),
         "--hide-scrollbars",
-        "--no-first-run",
-        "--no-default-browser-check",
-        "--disable-dev-shm-usage",
-        "--disable-background-networking",
         "--run-all-compositor-stages-before-draw",
         `--virtual-time-budget=${attempt.virtualTimeBudgetMs}`,
         `--user-data-dir=${profileDir}`,

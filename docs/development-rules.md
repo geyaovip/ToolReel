@@ -94,7 +94,14 @@ Remotion 适合结构化动画和信息卡片：
 
 Remotion 渲染必须通过真实 Remotion composition 输出，不要长期停留在 FFmpeg 文字占位。MVP 至少应覆盖 `HOOK`、`SELLING_POINT`、`CTA` 三类结构化 Scene。
 
-Remotion renderer 需要可用的本地 Chrome 和本地端口。macOS 本地开发默认通过 `scripts/remotion-chrome-wrapper.sh` 启动 Chrome，使用独立 profile 并关闭 crash reporting，避免 Crashpad 或 Application Support 权限导致渲染中断。若在受限沙箱中运行，需要为生成命令授予本地端口和浏览器启动权限；不要因此退回到永久占位渲染。
+Remotion renderer 需要可用的本地端口和稳定的浏览器运行时。默认优先使用 Remotion 管理的 `headless-shell`，避免和用户日常 Chrome profile、Crashpad、扩展、登录态互相影响。只有明确设置 `REMOTION_CHROME_EXECUTABLE` 时，才切到指定 Chrome；macOS 本地调试可使用 `scripts/remotion-chrome-wrapper.sh`，该脚本必须使用独立临时 profile 并在退出后清理。
+
+浏览器连接失败属于真实素材/真实渲染失败，不应被伪装成可用视频。开发时必须遵守：
+
+- Remotion 场景失败时直接暴露错误，不静默降级到低质量保底视频。
+- 官网截图和网页素材采集失败时记录原因；没有可用截图的 HyperFrames scene 应跳过，不生成假官网画面。
+- 生成前可运行 `pnpm browser:doctor -- --cleanup` 清理 ToolReel 残留浏览器 profile，并确认系统 Chrome 与 Remotion headless-shell 可用。
+- 截图和渲染前应清理 ToolReel 自己创建的临时 profile，避免残留 profile 逐次放大连接失败率。
 
 默认使用 Remotion 的 Scene：
 
@@ -306,6 +313,7 @@ assets.json
 - 对第三方视频和社交内容，第一阶段只记录候选 URL，不自动下载或二次分发。
 - 官网截图进入视频时应优先使用慢速滚动、推近或重点区域高亮，避免纯静态截图。
 - Remotion 是核心渲染器；Remotion 场景失败时应直接失败并暴露错误，不要静默降级到低质量保底渲染。
+- HyperFrames 官网场景依赖真实网页截图、产品截图、录屏或可信素材；浏览器截图失败时不能输出看起来像官网的假素材。
 
 手动素材模板见：
 

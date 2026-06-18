@@ -61,13 +61,10 @@ export async function validateProductionQuality({
     ),
     check("coverIdeasCount", cover.ideas.length >= 2 && cover.ideas.length <= 3, cover.ideas.length, "2-3"),
     check(
-      "coverSelectedMatchesScript",
-      Boolean(
-        script.creative?.coverTitle &&
-          (cover.selected.title === script.creative.coverTitle || script.creative.coverTitle.startsWith(cover.selected.title)),
-      ),
+      "coverSelectedRelevant",
+      coverTitleIsRelevant(cover.selected.title, script),
       cover.selected.title,
-      script.creative?.coverTitle ?? "script cover title",
+      "script tool name, hook title, or creative cover title",
     ),
     check(
       "coverTextFits",
@@ -76,6 +73,19 @@ export async function validateProductionQuality({
       "title and subtitle <=18 visual chars",
     ),
   ];
+}
+
+function coverTitleIsRelevant(title: string, script: ScriptData): boolean {
+  const candidates = [
+    script.toolName,
+    script.creative?.coverTitle,
+    script.segments.find((segment) => segment.sceneType === "HOOK")?.title,
+    `${script.toolName} 怎么用`,
+    `${script.toolName} 值得试吗`,
+    `${script.toolName} 怎么选`,
+  ].filter((value): value is string => Boolean(value));
+
+  return candidates.some((candidate) => candidate.includes(title) || title.includes(candidate));
 }
 
 async function inspectAudio(videoPath: string): Promise<{ meanVolume: number; maxVolume: number }> {

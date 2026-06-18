@@ -8,6 +8,7 @@ export const MACOS_CHROME_EXECUTABLE = "/Applications/Google Chrome.app/Contents
 const TOOLREEL_PROFILE_PREFIXES = [
   "toolreel-remotion-chrome-profile.",
   "toolreel-screenshot-profile-",
+  "toolreel-cover-profile-",
 ];
 
 export function systemChromeExecutable(): string | undefined {

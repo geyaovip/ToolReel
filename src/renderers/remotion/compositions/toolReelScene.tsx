@@ -59,6 +59,28 @@ function sceneTone(scene: ToolReelSceneProps["scene"]): { accent: string; label:
   return { accent: scene.type === "WEBSITE_DEMO" ? palette.blue : palette.accent, label: "科普" };
 }
 
+function sceneStructure(scene: ToolReelSceneProps["scene"]): string[] {
+  if (scene.type === "WORKFLOW") {
+    return ["任务", "工具", "结果"];
+  }
+  if (scene.type === "COMPARISON") {
+    return ["维度", "差异", "选择"];
+  }
+  if (scene.type === "TOOL_LIST") {
+    return ["标准", "场景", "顺序"];
+  }
+  if (scene.type === "RECOMMENDATION") {
+    return ["适合", "成本", "先试"];
+  }
+  if (scene.type === "FEATURE" || scene.type === "SELLING_POINT") {
+    return ["能力", "收益", "判断"];
+  }
+  if (scene.type === "CTA") {
+    return ["记住", "匹配", "再试"];
+  }
+  return ["定位", "能力", "场景"];
+}
+
 const baseStyles = {
   fontFamily:
     '"Hiragino Sans GB", "STHeiti", "PingFang SC", "Arial Unicode MS", Arial, sans-serif',
@@ -269,7 +291,52 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
         </div>
       </div>
 
-      <div style={{ position: "absolute", top: 910, left: 128, width: 824 }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 884,
+          left: 128,
+          width: 824,
+          height: 72,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          opacity: interpolate(frame, [10, 22], [0, 1], { extrapolateRight: "clamp" }),
+        }}
+      >
+        {sceneStructure(scene).map((item, index, array) => (
+          <React.Fragment key={item}>
+            <div
+              style={{
+                minWidth: 166,
+                height: 58,
+                padding: "0 24px",
+                boxSizing: "border-box",
+                background: index === 1 ? `${accent}28` : "rgba(255,255,255,0.10)",
+                border: `2px solid ${index === 1 ? accent : "rgba(255,255,255,0.12)"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 28,
+                color: index === 1 ? accent : "rgba(248,251,255,0.88)",
+              }}
+            >
+              {item}
+            </div>
+            {index < array.length - 1 ? (
+              <div
+                style={{
+                  width: 54,
+                  height: 2,
+                  background: "rgba(255,255,255,0.26)",
+                }}
+              />
+            ) : null}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div style={{ position: "absolute", top: 990, left: 128, width: 824 }}>
         {(scene.onScreenFocus?.length ? scene.onScreenFocus : scene.bullets)
           .map((bullet) => ({ bullet, lines: bulletLines(bullet) }))
           .filter((item) => item.lines.length)

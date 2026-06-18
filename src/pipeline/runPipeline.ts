@@ -9,6 +9,7 @@ import { validateAssetsForMvp } from "../quality/validateAssets.ts";
 import { checkMvpReadiness } from "../quality/checkMvpReadiness.ts";
 import { validateContentQuality } from "../quality/validateContentQuality.ts";
 import { validateHyperFrameSceneVideo } from "../quality/validateSceneVideo.ts";
+import { validateProductionQuality } from "../quality/validateProductionQuality.ts";
 import { validateVisibleText } from "../quality/validateVisibleText.ts";
 import { researchTool } from "../research/researchTool.ts";
 import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
@@ -93,6 +94,16 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const validation = await validateOutput(finalVideo);
   validation.checks.push(...validateAssetsForMvp(assets));
   validation.checks.push(...contentQuality.checks.map((item) => ({ ...item, name: `content:${item.name}` })));
+  validation.checks.push(
+    ...(await validateProductionQuality({
+      finalVideo,
+      validation,
+      captions,
+      cover,
+      voice,
+      script,
+    })),
+  );
   validation.checks.push(
     ...renderedScenes.flatMap((scene) =>
       (scene.renderQuality?.checks ?? []).map((check) => ({

@@ -170,7 +170,14 @@ function mergeDanglingPunctuation(chunks: string[]): string[] {
 
 function mergeShortChunks(chunks: string[]): string[] {
   const merged: string[] = [];
-  for (const chunk of chunks) {
+  for (let index = 0; index < chunks.length; index += 1) {
+    const chunk = chunks[index];
+    const next = chunks[index + 1];
+    if (visualLength(chunk) < 4 && next && visualLength(`${chunk}${next}`) <= HARD_CAPTION_MAX) {
+      merged.push(`${chunk}${next}`);
+      index += 1;
+      continue;
+    }
     if (visualLength(chunk) < 4 && merged.length) {
       merged[merged.length - 1] += chunk;
       continue;

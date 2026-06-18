@@ -7,6 +7,7 @@ export function validateAssetsForMvp(assets: AssetData): OutputValidationCheck[]
     usableLocalAsset(assets.websiteScreenshot);
   const hasWebsiteVisual = Boolean(websiteDemoVisual);
   const requiresAutoAssetCoverage = assets.source === "auto";
+  const hasReusableVisual = hasWebsiteVisual && Boolean(assets.notes?.some((note) => /Reused (cached|previous)/i.test(note)));
   const hasWebsitePageCandidate = Boolean(assets.selectedAssets?.websiteDemoPage || assets.pageCandidates?.length);
   const candidateTypes = new Set([
     ...(assets.pageCandidates ?? []).map((item) => item.type),
@@ -28,17 +29,20 @@ export function validateAssetsForMvp(assets: AssetData): OutputValidationCheck[]
     },
     {
       name: "assetCandidateTypesPresent",
-      passed: !requiresAutoAssetCoverage || candidateTypes.size >= 2,
+      passed: !requiresAutoAssetCoverage || hasReusableVisual || candidateTypes.size >= 2,
       actual: [...candidateTypes].join(", ") || "none",
-      expected: requiresAutoAssetCoverage ? "at least two asset candidate types when URL assets are available" : "manual/topic mode can defer asset candidates",
+      expected: requiresAutoAssetCoverage
+        ? "at least two asset candidate types, or reusable cached visual when live fetch is unavailable"
+        : "manual/topic mode can defer asset candidates",
     },
     {
       name: "assetSelectionRecorded",
       passed:
         !requiresAutoAssetCoverage ||
+        hasReusableVisual ||
         Boolean(assets.selectedAssets?.websiteDemoPage || assets.selectedAssets?.featurePage || assets.selectedAssets?.workflowPage),
       actual: Object.keys(assets.selectedAssets ?? {}).join(", ") || "none",
-      expected: requiresAutoAssetCoverage ? "selected website, feature, or workflow asset" : "manual/topic mode can defer selected assets",
+      expected: requiresAutoAssetCoverage ? "selected website, feature, workflow asset, or reusable cached visual" : "manual/topic mode can defer selected assets",
     },
   ];
 }

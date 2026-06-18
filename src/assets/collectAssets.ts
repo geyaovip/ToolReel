@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { copyFile, readdir, readFile } from "node:fs/promises";
 import { captureWebsiteScreenshot } from "./screenshot.ts";
 import { downloadAsset } from "./download.ts";
 import { extractPageMetadata } from "./html.ts";
@@ -41,15 +41,23 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
   }
   const homepageUrl = normalizeUrl(input.url);
   const html = await fetchHomepageHtml(homepageUrl, notes);
+  if (html && hasCookieOrConsentRisk(html)) {
+    notes.push("Homepage may show a cookie, consent, or privacy banner that can obstruct website capture.");
+  }
   const metadata = html ? extractPageMetadata(html, homepageUrl) : undefined;
   const pageCandidates = html ? buildPageCandidates(html, homepageUrl) : [];
   const linkedPageMetadata = await fetchLinkedPageMetadata(pageCandidates.slice(0, 5), notes);
   const existingScreenshot =
-    existingUsablePath(existing?.websiteScreenshot) || existingFile(join(assetsDir, "homepage.png"));
+    existingUsablePath(existing?.websiteScreenshot) ||
+    existingFile(join(assetsDir, "homepage.png")) ||
+    (await reusableHomepageScreenshot(input.name, notes));
   const screenshotPath =
     (shouldRefreshAssets() || !existingScreenshot
       ? await tryCaptureScreenshot(homepageUrl, join(assetsDir, "homepage.png"), notes, Boolean(existingScreenshot))
       : existingScreenshot) || existingScreenshot;
+  if (screenshotPath) {
+    await cacheHomepageScreenshot(screenshotPath, assetsDir, notes);
+  }
   const logoPath =
     (await tryDownloadFirst(metadata?.iconUrls ?? [], assetsDir, `${input.name}-logo`, notes)) ||
     existingUsablePath(existing?.logo) ||
@@ -234,6 +242,9 @@ async function fetchLinkedPageMetadata(
     if (!html) {
       continue;
     }
+    if (hasCookieOrConsentRisk(html)) {
+      notes.push(`${page.label ?? labelForKind(page.kind)} may show a cookie, consent, or privacy banner.`);
+    }
     results.push({
       label: page.label ?? labelForKind(page.kind),
       kind: page.kind,
@@ -241,6 +252,10 @@ async function fetchLinkedPageMetadata(
     });
   }
   return results;
+}
+
+function hasCookieOrConsentRisk(html: string): boolean {
+  return /cookie|consent|privacy preference|privacy settings|accept all|reject all|manage preferences/i.test(html);
 }
 
 function buildExternalCandidates(
@@ -436,6 +451,47 @@ function existingUsablePath(path: string | undefined): string | undefined {
 
 function existingFile(path: string): string | undefined {
   return existsSync(path) ? path : undefined;
+}
+
+async function reusableHomepageScreenshot(toolName: string, notes: string[]): Promise<string | undefined> {
+  const slug = slugify(toolName);
+  const cachePath = existingFile(join("outputs", "_asset-cache", slug, "homepage.png"));
+  if (cachePath) {
+    notes.push(`Reused cached homepage screenshot: ${cachePath}`);
+    return cachePath;
+  }
+
+  try {
+    const entries = await readdir("outputs", { withFileTypes: true });
+    const candidates = entries
+      .filter((entry) => entry.isDirectory() && entry.name.includes(slug) && entry.name !== "_asset-cache")
+      .map((entry) => join("outputs", entry.name, "assets", "homepage.png"))
+      .filter((path) => existsSync(path))
+      .sort()
+      .reverse();
+    if (candidates[0]) {
+      notes.push(`Reused previous homepage screenshot: ${candidates[0]}`);
+      return candidates[0];
+    }
+  } catch {
+    // No previous outputs are available yet.
+  }
+
+  return undefined;
+}
+
+async function cacheHomepageScreenshot(path: string, assetsDir: string, notes: string[]): Promise<void> {
+  try {
+    const toolSlug = assetsDir.split("/").at(-2)?.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/-(tutorial|comparison|top-list|website-demo|update-news)$/, "");
+    if (!toolSlug || path.includes("_asset-cache")) {
+      return;
+    }
+    const cacheDir = join("outputs", "_asset-cache", toolSlug);
+    await ensureDir(cacheDir);
+    await copyFile(path, join(cacheDir, "homepage.png"));
+  } catch (error) {
+    notes.push(`Homepage screenshot cache skipped: ${messageOf(error)}`);
+  }
 }
 
 function shouldRefreshAssets(): boolean {

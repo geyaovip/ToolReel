@@ -8,6 +8,7 @@ import { validateOutput } from "../quality/validateOutput.ts";
 import { validateAssetsForMvp } from "../quality/validateAssets.ts";
 import { checkMvpReadiness } from "../quality/checkMvpReadiness.ts";
 import { validateContentQuality } from "../quality/validateContentQuality.ts";
+import { validateHyperFrameSceneVideo } from "../quality/validateSceneVideo.ts";
 import { validateVisibleText } from "../quality/validateVisibleText.ts";
 import { researchTool } from "../research/researchTool.ts";
 import { renderHyperFrameScene } from "../renderers/hyperframes/renderHyperFrameScene.ts";
@@ -18,7 +19,7 @@ import { planScenes } from "../scenes/planScenes.ts";
 import { generateScript } from "../script/generateScript.ts";
 import { captionsToSrt, fitSceneDurationsToVoice, generateCaptions } from "../subtitles/generateCaptions.ts";
 import { generateVoice } from "../tts/generateVoice.ts";
-import type { GenerateInput, PipelineResult, PlannedScene, VideoType } from "../types.ts";
+import type { Caption, GenerateInput, PipelineResult, PlannedScene, ScriptData, VideoType, VoiceData } from "../types.ts";
 import { ensureDir, writeJson } from "../utils/file.ts";
 import { slugify } from "../utils/slug.ts";
 import { todayId } from "../utils/time.ts";
@@ -56,17 +57,6 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     renderStatus: "planned" as const,
   })) satisfies PlannedScene[];
   scenes = scenes.map((scene) => skipUnavailableHyperFrameScene(scene, assets));
-  const activeScenes = scenes.filter((scene) => scene.renderStatus !== "skipped");
-  const activeScript = {
-    ...script,
-    segments: script.segments.filter((segment) =>
-      activeScenes.some((scene) => scene.type === segment.sceneType && scene.title === segment.title),
-    ),
-  };
-  const voice = await generateVoice(activeScript, join(outputDir, "voice.mp3"));
-  const fittedScenes = ensureMinimumDuration(fitSceneDurationsToVoice(activeScenes, voice), 40);
-  scenes = scenes.map((scene) => fittedScenes.find((item) => item.id === scene.id) ?? scene);
-  const captions = await generateCaptions(fittedScenes);
 
   await writeJson(join(outputDir, "research.json"), research);
   await writeJson(join(outputDir, "creative.json"), creative);
@@ -74,19 +64,27 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const contentQuality = validateContentQuality(research, creative, script);
   await writeJson(join(outputDir, "content-quality.json"), contentQuality);
   await writeJson(join(outputDir, "assets.json"), assets);
+
+  let renderPass = await renderActiveScenes({ scenes, script, assets, outputDir, scenesDir });
+  let attempts = 1;
+  while (renderPass.qaSkippedCount > 0 && attempts < 3) {
+    attempts += 1;
+    renderPass = await renderActiveScenes({
+      scenes: renderPass.scenes,
+      script,
+      assets,
+      outputDir,
+      scenesDir,
+    });
+  }
+
+  scenes = renderPass.scenes;
+  const captions = renderPass.captions;
+  const voice = renderPass.voice;
+  const renderedScenes = renderPass.renderedScenes;
+
   await writeJson(join(outputDir, "captions.json"), captions);
   await writeFile(join(outputDir, "captions.srt"), captionsToSrt(captions), "utf8");
-  await writeJson(join(outputDir, "scenes.json"), scenes);
-
-  const renderedScenes: PlannedScene[] = [];
-  for (const scene of fittedScenes) {
-    const outputPath =
-      scene.renderer === "HyperFrames"
-        ? await renderHyperFrameScene(scene, script, assets, captions, scenesDir)
-        : await renderRemotionScene(scene, script, assets, captions, scenesDir);
-    renderedScenes.push({ ...scene, outputPath, renderStatus: "rendered" });
-  }
-  scenes = scenes.map((scene) => renderedScenes.find((item) => item.id === scene.id) ?? scene);
   await writeJson(join(outputDir, "scenes.json"), scenes);
 
   const cover = await generateCover(script, assets, join(outputDir, "cover.png"));
@@ -95,6 +93,14 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   const validation = await validateOutput(finalVideo);
   validation.checks.push(...validateAssetsForMvp(assets));
   validation.checks.push(...contentQuality.checks.map((item) => ({ ...item, name: `content:${item.name}` })));
+  validation.checks.push(
+    ...renderedScenes.flatMap((scene) =>
+      (scene.renderQuality?.checks ?? []).map((check) => ({
+        ...check,
+        name: `scene:${scene.id}:${check.name}`,
+      })),
+    ),
+  );
   validation.checks.push(...validateVisibleText(script, renderedScenes, captions));
   validation.passed = validation.checks.every((item) => item.passed);
   await writeJson(join(outputDir, "validation.json"), validation);
@@ -125,6 +131,75 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     validation,
     runManifest,
     mvpReadiness,
+  };
+}
+
+type RenderActiveScenesArgs = {
+  scenes: PlannedScene[];
+  script: ScriptData;
+  assets: Awaited<ReturnType<typeof collectAssets>>;
+  outputDir: string;
+  scenesDir: string;
+};
+
+type RenderActiveScenesResult = {
+  scenes: PlannedScene[];
+  renderedScenes: PlannedScene[];
+  captions: Caption[];
+  voice: VoiceData;
+  qaSkippedCount: number;
+};
+
+async function renderActiveScenes(args: RenderActiveScenesArgs): Promise<RenderActiveScenesResult> {
+  const activeScenes = args.scenes.filter((scene) => scene.renderStatus !== "skipped");
+  const activeScript = {
+    ...args.script,
+    segments: args.script.segments.filter((segment) =>
+      activeScenes.some((scene) => scene.type === segment.sceneType && scene.title === segment.title),
+    ),
+  };
+  const voice = await generateVoice(activeScript, join(args.outputDir, "voice.mp3"));
+  const fittedScenes = ensureMinimumDuration(fitSceneDurationsToVoice(activeScenes, voice), 40);
+  const captions = await generateCaptions(fittedScenes);
+
+  const nextScenes = args.scenes.map((scene) => fittedScenes.find((item) => item.id === scene.id) ?? scene);
+  const renderedOrSkipped: PlannedScene[] = [];
+  let qaSkippedCount = 0;
+
+  for (const scene of fittedScenes) {
+    const outputPath =
+      scene.renderer === "HyperFrames"
+        ? await renderHyperFrameScene(scene, args.script, args.assets, captions, args.scenesDir)
+        : await renderRemotionScene(scene, args.script, args.assets, captions, args.scenesDir);
+    let renderedScene: PlannedScene = { ...scene, outputPath, renderStatus: "rendered" };
+
+    if (scene.renderer === "HyperFrames") {
+      const renderQuality = await validateHyperFrameSceneVideo(outputPath);
+      renderedScene = { ...renderedScene, renderQuality };
+      if (!renderQuality.passed) {
+        qaSkippedCount += 1;
+        renderedScene = {
+          ...renderedScene,
+          outputPath: undefined,
+          renderStatus: "skipped",
+          renderSkipReason: `HyperFrames scene skipped after QA failed: ${renderQuality.checks
+            .filter((check) => !check.passed)
+            .map((check) => check.name)
+            .join(", ")}`,
+        };
+      }
+    }
+
+    renderedOrSkipped.push(renderedScene);
+  }
+
+  const scenes = nextScenes.map((scene) => renderedOrSkipped.find((item) => item.id === scene.id) ?? scene);
+  return {
+    scenes,
+    renderedScenes: scenes.filter((scene) => scene.renderStatus === "rendered" && scene.outputPath),
+    captions,
+    voice,
+    qaSkippedCount,
   };
 }
 

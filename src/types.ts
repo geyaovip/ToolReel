@@ -256,9 +256,16 @@ export type PlannedScene = {
   };
   renderStatus?: "planned" | "rendered" | "skipped";
   renderSkipReason?: string;
+  renderQuality?: SceneRenderQuality;
   duration: number;
   renderer?: RendererName;
   outputPath?: string;
+};
+
+export type SceneRenderQuality = {
+  checkedAt: string;
+  passed: boolean;
+  checks: OutputValidationCheck[];
 };
 
 export type PipelineResult = {

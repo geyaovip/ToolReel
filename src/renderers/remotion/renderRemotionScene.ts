@@ -64,7 +64,8 @@ async function renderWithRetry({
     captions: Caption[];
   };
 }): Promise<void> {
-  const maxAttempts = Number(process.env.REMOTION_RENDER_ATTEMPTS || 2);
+  const maxAttempts = Number(process.env.REMOTION_RENDER_ATTEMPTS || 3);
+  const timeoutInMilliseconds = Number(process.env.REMOTION_RENDER_TIMEOUT_MS || 180000);
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -75,6 +76,7 @@ async function renderWithRetry({
         serveUrl,
         id: REMOTION_COMPOSITION_ID,
         inputProps,
+        timeoutInMilliseconds,
         ...remotionRuntime,
       });
 
@@ -94,7 +96,7 @@ async function renderWithRetry({
         pixelFormat: "yuv420p",
         crf: 20,
         concurrency: Number(process.env.REMOTION_RENDER_CONCURRENCY || 1),
-        timeoutInMilliseconds: Number(process.env.REMOTION_RENDER_TIMEOUT_MS || 120000),
+        timeoutInMilliseconds,
         ...remotionRuntime,
       });
       return;
@@ -104,11 +106,16 @@ async function renderWithRetry({
         break;
       }
       console.warn(`Remotion render attempt ${attempt} failed for ${scene.id}; retrying with a fresh bundle.`);
+      await wait(1200 * attempt);
       await resetRemotionBundle();
     }
   }
 
   throw lastError;
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function captionsForScene(scene: PlannedScene, captions: Caption[]): Caption[] {

@@ -1,6 +1,9 @@
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { GenerateInput, ResearchResult } from "../types.ts";
 import { extractPage, pickRelevantInternalLinks, type ExtractedPage } from "./pageExtract.ts";
 import { summarizePages } from "./summarize.ts";
+import { slugify } from "../utils/slug.ts";
 
 export async function researchTool(input: GenerateInput): Promise<ResearchResult> {
   if (!input.url.trim()) {
@@ -23,6 +26,10 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
   }
 
   if (!pages.length) {
+    const cached = await reusableResearch(input, notes);
+    if (cached) {
+      return cached;
+    }
     return fallbackResearch(input, officialUrl, notes);
   }
 
@@ -51,6 +58,52 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
     unknowns: summary.unknowns,
     notes,
   };
+}
+
+async function reusableResearch(input: GenerateInput, notes: string[]): Promise<ResearchResult | undefined> {
+  const slug = slugify(input.name);
+  try {
+    const entries = await readdir("outputs", { withFileTypes: true });
+    const candidates = entries
+      .filter((entry) => entry.isDirectory() && entry.name.includes(slug) && entry.name !== "_asset-cache")
+      .map((entry) => join("outputs", entry.name, "research.json"))
+      .sort()
+      .reverse();
+
+    for (const path of candidates) {
+      if (path.startsWith(input.outputDir)) {
+        continue;
+      }
+      try {
+        const cached = JSON.parse(await readFile(path, "utf8")) as ResearchResult;
+        if (isReusableResearch(cached)) {
+          return {
+            ...cached,
+            notes: [
+              ...(cached.notes ?? []),
+              ...notes,
+              `Reused previous research after live fetch failed: ${path}`,
+            ],
+          };
+        }
+      } catch {
+        // Try the next previous research artifact.
+      }
+    }
+  } catch {
+    // No previous outputs are available yet.
+  }
+  return undefined;
+}
+
+function isReusableResearch(research: ResearchResult): boolean {
+  return Boolean(
+    research.sourcePages?.length &&
+      research.evidence?.length &&
+      research.insights?.length &&
+      research.confidence &&
+      research.confidence !== "low",
+  );
 }
 
 function topicResearch(input: GenerateInput): ResearchResult {

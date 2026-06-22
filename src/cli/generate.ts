@@ -30,12 +30,14 @@ function requireArgs(args: CliArgs): { name: string; url: string; topic?: string
   const type = args.type ?? "product_pick";
   if (type === "top_list") {
     const topic = args.topic || args.name;
-    if (!topic) {
-      throw new Error('Usage: pnpm generate --topic="AI coding tools" --type="top_list"');
+    if (!topic || !args.url) {
+      throw new Error(
+        'Real source content is required. Usage: pnpm generate --topic="AI coding tools" --name="Cursor" --url="https://cursor.com" --type="top_list"',
+      );
     }
     return {
       name: args.name ?? topic,
-      url: args.url ?? "",
+      url: args.url,
       topic,
       type,
     };

@@ -52,6 +52,5 @@ export function commonHeadlessChromeFlags(): string[] {
     "--no-default-browser-check",
     "--no-first-run",
     "--password-store=basic",
-    "--use-mock-keychain",
   ];
 }

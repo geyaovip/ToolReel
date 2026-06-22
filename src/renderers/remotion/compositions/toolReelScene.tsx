@@ -428,7 +428,7 @@ export const ToolReelScene: React.FC<ToolReelSceneProps> = ({ scene, script, ass
 };
 
 function usableImage(source: string | undefined): string | undefined {
-  if (!source || source === "unknown" || source.startsWith("mock://")) {
+  if (!source || source === "unknown") {
     return undefined;
   }
   if (source.startsWith("static:")) {

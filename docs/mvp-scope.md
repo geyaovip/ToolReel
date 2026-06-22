@@ -32,21 +32,17 @@ outputs/YYYY-MM-DD-cursor/final.mp4
 12. 自动规划 scenes。
 13. 自动选择每个 scene 的 renderer。
 14. Remotion 能通过真实 composition 渲染至少 3 类 Scene：`HOOK`、`SELLING_POINT`、`CTA`。
-15. HyperFrames 模块能处理 `WEBSITE_DEMO`，失败时记录原因，不生成误导性假画面。
+15. HyperFrames 模块通过真实 CLI 处理 `WEBSITE_DEMO`；缺少真实素材、验证失败或渲染失败时整次任务中断。
 16. 最终用 FFmpeg 合并片段。
 17. 输出 `final.mp4`。
 
-## 可以 mock 的部分
+## 真实内容要求
 
-- 工具研究结果。
-- 脚本文案。
-- 素材清单。
-- Logo 路径。
-- 产品截图路径。
-
-mock 数据也必须符合真实数据结构，方便后续替换。
-
-配音不再属于可 mock 部分。最终视频必须使用真实 TTS provider 生成的音频；当前 provider 是 MiniMax，未来可以扩展其他 TTS 来源。
+- 不提供 mock 模式，不生成填充性质的 research、脚本、素材、Logo、截图或音频。
+- research 必须来自当前官网抓取结果，或复用此前成功保存的真实 research 证据。
+- 网页 Scene 必须具有真实本地截图，并由真实 HyperFrames CLI 渲染。
+- 最终视频必须使用真实 TTS provider 生成的音频；当前 provider 是 MiniMax，未来可以扩展其他 TTS 来源。
+- 任一必需真实输入缺失时直接失败，并说明需要补充的配置或素材。
 
 ## 不做的部分
 
@@ -57,7 +53,7 @@ mock 数据也必须符合真实数据结构，方便后续替换。
 - 支付或订阅。
 - 多用户任务队列。
 - 复杂素材库。
-- HyperFrames 深度网站转视频能力。
+- 需要登录、绕过权限或付费墙的网站采集。
 
 ## 最低视频内容
 
@@ -65,7 +61,7 @@ mock 数据也必须符合真实数据结构，方便后续替换。
 
 - 开场标题。
 - 工具 Logo 或干净的工具名展示。
-- 官网截图、官网展示场景或明确的非误导性替代画面。
+- 真实官网截图或真实产品页面展示场景。
 - 3 个核心信息点。
 - 大字字幕。
 - 真实 TTS 配音。

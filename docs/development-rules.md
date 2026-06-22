@@ -99,7 +99,7 @@ Remotion renderer 需要可用的本地端口和稳定的浏览器运行时。�
 浏览器连接失败属于真实素材/真实渲染失败，不应被伪装成可用视频。开发时必须遵守：
 
 - Remotion 场景失败时直接暴露错误，不静默降级到低质量保底视频。
-- 官网截图和网页素材采集失败时记录原因；没有可用截图的 HyperFrames scene 应跳过，不生成假官网画面。
+- 官网截图和网页素材采集失败时记录原因并中断任务；不得跳过已经规划的 HyperFrames scene。
 - 生成前可运行 `pnpm browser:doctor -- --cleanup` 清理 ToolReel 残留浏览器 profile，并确认系统 Chrome 与 Remotion headless-shell 可用。
 - 截图和渲染前应清理 ToolReel 自己创建的临时 profile，避免残留 profile 逐次放大连接失败率。
 
@@ -131,6 +131,8 @@ HyperFrames 适合网站展示和网页转视频：
 - `WEBSITE_DEMO`
 - `LANDING_PAGE_DEMO`
 - `PRODUCT_PAGE_SCROLL`
+
+HyperFrames 必须通过项目依赖中的真实 CLI 执行 `lint`、`validate`、`inspect` 和 `render`。不得以 FFmpeg 主题模板冒充 HyperFrames，也不得在缺素材、QA 失败或浏览器失败时删除 Scene 后继续合成。每个 HyperFrames composition 必须嵌入确定的本地字体、真实本地网页截图和本地 GSAP 运行时。
 
 ## 5.5 Creative 编导规则
 
@@ -201,7 +203,7 @@ src/tts/generateVoice.ts
 
 - 最终视频生成必须中断并说明缺少真实 TTS 配置。
 - 不要使用 macOS `say`、蜂鸣、正弦波、电流测试音或静音作为最终视频兜底音轨。
-- 只有在明确测试音频链路时才允许生成 mock tone，且不得作为默认最终视频音轨。
+- 仓库不提供测试音或模拟配音生成入口；音频链路测试也应使用真实 TTS 的短文本。
 
 MiniMax TTS 配置通过 `.env` 或系统环境变量提供：
 
@@ -314,6 +316,8 @@ assets.json
 - 官网截图进入视频时应优先使用慢速滚动、推近或重点区域高亮，避免纯静态截图。
 - Remotion 是核心渲染器；Remotion 场景失败时应直接失败并暴露错误，不要静默降级到低质量保底渲染。
 - HyperFrames 官网场景依赖真实网页截图、产品截图、录屏或可信素材；浏览器截图失败时不能输出看起来像官网的假素材。
+- HyperFrames CLI 所需的 FFmpeg 与 FFprobe 必须由仓库依赖提供，并在子进程 `PATH` 中显式暴露，不依赖用户额外安装 Homebrew 工具。
+- 官网截图使用受控 Puppeteer 页面生命周期，默认导航超时 90 秒，并用两种竖屏 viewport 重试；超时后明确失败，不复用未验证的半成品文件。
 
 手动素材模板见：
 
@@ -382,8 +386,8 @@ outputs/YYYY-MM-DD-tool-slug/
 
 1. 先跑通全流程，再优化细节。
 2. 先 CLI，后后台。
-3. 先 mock 数据，后真实 API。
-4. MVP 先保证 Remotion 结构化场景稳定，v1.2 再系统增强 HyperFrames 官网和网页现场感。
+3. 从真实 research、真实素材和真实 API 开始，任何阶段都不引入 mock 生产模式。
+4. Remotion 与 HyperFrames 都必须使用各自真实渲染器，任一必需 Scene 失败则整次任务失败。
 5. 先生成视频，再追求视觉高级。
 6. 不过早引入数据库。
 7. 不过早做登录系统。

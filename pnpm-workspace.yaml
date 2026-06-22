@@ -1,3 +1,10 @@
 allowBuilds:
   '@ffmpeg-installer/darwin-arm64': true
+  '@ffprobe-installer/darwin-arm64': true
+  '@google/genai': true
   esbuild: true
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - hyperframes@0.6.121

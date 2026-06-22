@@ -51,7 +51,7 @@ pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"
 
 以下能力不阻塞 MVP：
 
-- HyperFrames 深度网站转视频：放到 v1.2。
+- 更精细的 HyperFrames DOM 区域识别和真实操作录屏仍可继续增强，但真实 CLI 渲染已经是 MVP 必需能力。
 - 复杂后台、任务系统和审核界面：v1.5 暂缓。
 - 多视频类型完整支持：放到 v1.4。
 - 更高级的 Remotion 视觉体系和封面多方案评分：放到 v1.3。

@@ -45,7 +45,7 @@ export async function validateProductionQuality({
   return [
     check("audioNotSilent", audioStats.maxVolume > -45, audioStats.maxVolume, "max volume > -45dB"),
     check("audioHasVoiceLevel", audioStats.meanVolume > -36, audioStats.meanVolume, "mean volume > -36dB"),
-    check("voiceProviderIsReal", voice.provider !== "mock", voice.provider, "real TTS provider"),
+    check("voiceProviderIsReal", voice.provider === "minimax", voice.provider, "configured real TTS provider"),
     check(
       "captionTimelineMatchesVideo",
       Boolean(duration && Math.abs(lastCaptionEnd - duration) <= 0.8),
@@ -67,10 +67,10 @@ export async function validateProductionQuality({
       "script tool name, hook title, or creative cover title",
     ),
     check(
-      "coverTextFits",
-      [cover.selected.title, cover.selected.subtitle].every((value) => visualLength(value) <= 18),
+      "coverTextComplete",
+      [cover.selected.title, cover.selected.subtitle].every((value) => Boolean(value.trim()) && !/[.…]{2,}$/.test(value)),
       `${cover.selected.title} / ${cover.selected.subtitle}`,
-      "title and subtitle <=18 visual chars",
+      "non-empty complete text; rendered cover layout audit must pass",
     ),
   ];
 }

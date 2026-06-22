@@ -28,7 +28,22 @@ export async function resolveFfmpegPath(): Promise<string> {
   );
 }
 
+export async function resolveFfprobePath(): Promise<string> {
+  try {
+    const imported = (await import("@ffprobe-installer/ffprobe")) as {
+      default?: FfmpegInstaller;
+      path?: string;
+    };
+    const packagePath = imported.default?.path ?? imported.path;
+    if (packagePath && existsSync(packagePath)) {
+      return packagePath;
+    }
+  } catch {
+    // The error below provides the actionable installation requirement.
+  }
+  throw new Error("FFprobe is required. Run `pnpm install` so @ffprobe-installer/ffprobe is available.");
+}
+
 export async function runFfmpeg(args: string[]): Promise<void> {
   await runCommand(await resolveFfmpegPath(), ["-hide_banner", "-y", ...args]);
 }
-

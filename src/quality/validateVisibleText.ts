@@ -25,7 +25,6 @@ export function validateVisibleText(
   );
   const scenesMissingAssetSelection = scenes.filter(
     (scene) =>
-      scene.renderStatus !== "skipped" &&
       ["WEBSITE_DEMO", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL", "SELLING_POINT", "FEATURE", "TARGET_USER"].includes(scene.type) &&
       !scene.assetSelection,
   );
@@ -71,7 +70,7 @@ function collectVisibleText(
       segment.narration,
       ...(segment.bullets ?? []),
     ]),
-    ...scenes.filter((scene) => scene.renderStatus !== "skipped").flatMap((scene) => [
+    ...scenes.flatMap((scene) => [
       scene.type === "WEBSITE_DEMO" ? "" : scene.title,
       scene.narration,
       ...scene.bullets,

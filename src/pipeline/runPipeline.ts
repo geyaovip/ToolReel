@@ -59,7 +59,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
     renderer: selectRenderer(scene.type),
     renderStatus: "planned" as const,
   })) satisfies PlannedScene[];
-  scenes = scenes.map((scene) => skipUnavailableHyperFrameScene(scene, assets));
+  assertHyperFrameAssetsAvailable(scenes, assets);
 
   await writeJson(join(outputDir, "research.json"), research);
   await writeJson(join(outputDir, "creative.json"), creative);
@@ -68,18 +68,7 @@ export async function runPipeline(args: RunPipelineArgs): Promise<PipelineResult
   await writeJson(join(outputDir, "content-quality.json"), contentQuality);
   await writeJson(join(outputDir, "assets.json"), assets);
 
-  let renderPass = await renderActiveScenes({ scenes, script, assets, outputDir, scenesDir });
-  let attempts = 1;
-  while (renderPass.qaSkippedCount > 0 && attempts < 3) {
-    attempts += 1;
-    renderPass = await renderActiveScenes({
-      scenes: renderPass.scenes,
-      script,
-      assets,
-      outputDir,
-      scenesDir,
-    });
-  }
+  const renderPass = await renderActiveScenes({ scenes, script, assets, outputDir, scenesDir });
 
   scenes = renderPass.scenes;
   const captions = renderPass.captions;
@@ -160,24 +149,14 @@ type RenderActiveScenesResult = {
   renderedScenes: PlannedScene[];
   captions: Caption[];
   voice: VoiceData;
-  qaSkippedCount: number;
 };
 
 async function renderActiveScenes(args: RenderActiveScenesArgs): Promise<RenderActiveScenesResult> {
-  const activeScenes = args.scenes.filter((scene) => scene.renderStatus !== "skipped");
-  const activeScript = {
-    ...args.script,
-    segments: args.script.segments.filter((segment) =>
-      activeScenes.some((scene) => scene.type === segment.sceneType && scene.title === segment.title),
-    ),
-  };
-  const voice = await generateVoice(activeScript, join(args.outputDir, "voice.mp3"));
-  const fittedScenes = ensureMinimumDuration(fitSceneDurationsToVoice(activeScenes, voice), 40);
+  const voice = await generateVoice(args.script, join(args.outputDir, "voice.mp3"));
+  const fittedScenes = ensureMinimumDuration(fitSceneDurationsToVoice(args.scenes, voice), 40);
   const captions = await generateCaptions(fittedScenes);
 
-  const nextScenes = args.scenes.map((scene) => fittedScenes.find((item) => item.id === scene.id) ?? scene);
-  const renderedOrSkipped: PlannedScene[] = [];
-  let qaSkippedCount = 0;
+  const renderedScenes: PlannedScene[] = [];
 
   for (const scene of fittedScenes) {
     const outputPath =
@@ -190,50 +169,42 @@ async function renderActiveScenes(args: RenderActiveScenesArgs): Promise<RenderA
       const renderQuality = await validateHyperFrameSceneVideo(outputPath);
       renderedScene = { ...renderedScene, renderQuality };
       if (!renderQuality.passed) {
-        qaSkippedCount += 1;
-        renderedScene = {
-          ...renderedScene,
-          outputPath: undefined,
-          renderStatus: "skipped",
-          renderSkipReason: `HyperFrames scene skipped after QA failed: ${renderQuality.checks
-            .filter((check) => !check.passed)
-            .map((check) => check.name)
-            .join(", ")}`,
-        };
+        const failures = renderQuality.checks
+          .filter((check) => !check.passed)
+          .map((check) => check.name)
+          .join(", ");
+        throw new Error(`HyperFrames scene ${scene.id} failed required QA checks: ${failures}`);
       }
     }
 
-    renderedOrSkipped.push(renderedScene);
+    renderedScenes.push(renderedScene);
   }
 
-  const scenes = nextScenes.map((scene) => renderedOrSkipped.find((item) => item.id === scene.id) ?? scene);
   return {
-    scenes,
-    renderedScenes: scenes.filter((scene) => scene.renderStatus === "rendered" && scene.outputPath),
+    scenes: renderedScenes,
+    renderedScenes,
     captions,
     voice,
-    qaSkippedCount,
   };
 }
 
-function skipUnavailableHyperFrameScene(scene: PlannedScene, assets: Awaited<ReturnType<typeof collectAssets>>): PlannedScene {
-  if (scene.renderer !== "HyperFrames") {
-    return scene;
+function assertHyperFrameAssetsAvailable(
+  scenes: PlannedScene[],
+  assets: Awaited<ReturnType<typeof collectAssets>>,
+): void {
+  const missing = scenes.filter((scene) => scene.renderer === "HyperFrames" && !hasUsableWebAsset(scene, assets));
+  if (!missing.length) {
+    return;
   }
-  if (hasUsableWebAsset(scene, assets)) {
-    return scene;
-  }
-  return {
-    ...scene,
-    renderStatus: "skipped",
-    renderSkipReason: "HyperFrames scene skipped because no usable website or product screenshot was available.",
-  };
+  throw new Error(
+    `HyperFrames requires a real local website visual. Missing assets for scene(s): ${missing.map((scene) => scene.id).join(", ")}. Screenshot capture must succeed before rendering.`,
+  );
 }
 
 function hasUsableWebAsset(scene: PlannedScene, assets: Awaited<ReturnType<typeof collectAssets>>): boolean {
   const selectedPath = scene.assetSelection ? assets.selectedAssets?.websiteDemoPage?.path ?? assets.selectedAssets?.featurePage?.path : undefined;
   return [selectedPath, assets.productPageScreenshot, assets.productScreenshot, assets.websiteScrollScreenshot, assets.websiteScreenshot].some(
-    (path) => Boolean(path && path !== "unknown" && !path.startsWith("mock://") && !path.startsWith("http")),
+    (path) => Boolean(path && path !== "unknown" && !path.startsWith("http")),
   );
 }
 

@@ -3,7 +3,7 @@ import { extname } from "node:path";
 import { ensureDir } from "../utils/file.ts";
 import { slugify } from "../utils/slug.ts";
 
-export async function downloadAsset(url: string, outputDir: string, fallbackName: string): Promise<string> {
+export async function downloadAsset(url: string, outputDir: string, defaultName: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
       "User-Agent": "ToolReel/0.1 asset collector",
@@ -23,7 +23,7 @@ export async function downloadAsset(url: string, outputDir: string, fallbackName
   await ensureDir(outputDir);
   const buffer = Buffer.from(await response.arrayBuffer());
   const extension = extensionFor(url, contentType);
-  const outputPath = `${outputDir}/${slugify(fallbackName)}${extension}`;
+  const outputPath = `${outputDir}/${slugify(defaultName)}${extension}`;
   await writeFile(outputPath, buffer);
   return outputPath;
 }

@@ -1,14 +1,11 @@
-import { spawn } from "node:child_process";
-import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { tmpdir } from "node:os";
+import { launch } from "puppeteer-core";
 import type { AssetData, CoverData, ScriptData } from "../types.ts";
-import { FONT_FILE, VIDEO_HEIGHT, VIDEO_WIDTH } from "../config.ts";
+import { VIDEO_HEIGHT, VIDEO_WIDTH } from "../config.ts";
 import { cleanupStaleBrowserProfiles, commonHeadlessChromeFlags, MACOS_CHROME_EXECUTABLE } from "../utils/browser.ts";
-import { runFfmpeg } from "../utils/ffmpeg.ts";
 import { ensureDir } from "../utils/file.ts";
-import { displayLines, escapeDrawText } from "../utils/text.ts";
 
 type CoverTheme = {
   background: string;
@@ -82,11 +79,7 @@ export async function generateCover(
   _assets: AssetData,
   outputPath: string,
 ): Promise<CoverData> {
-  try {
-    await generateHtmlCover(script, outputPath);
-  } catch {
-    await generateFallbackCover(script, outputPath);
-  }
+  await generateHtmlCover(script, outputPath);
   return coverData(script, outputPath);
 }
 
@@ -127,12 +120,12 @@ async function generateHtmlCover(script: ScriptData, outputPath: string): Promis
 
 function coverHtml(script: ScriptData): string {
   const theme = THEMES[script.videoType];
-  const titleLines = displayLines(coverTitle(script), 9, 2);
-  const subtitleLines = displayLines(coverSubtitle(script), 12, 2);
+  const titleLines = [coverTitle(script)];
+  const subtitleLines = [coverSubtitle(script)];
   const insightLines = coverInsights(script);
   const chip = coverChip(script);
   const verdict = coverVerdict(script);
-  const visualWord = cleanCoverText(script.toolName, 20);
+  const visualWord = coverVisualWord(script.toolName);
   const monoWord = visualWord.replace(/\s+/g, " ");
 
   return `<!doctype html>
@@ -173,7 +166,6 @@ function coverHtml(script: ScriptData): string {
     height: 100%;
     border: 7px solid ${theme.ink};
     background:
-      radial-gradient(circle at 86% 8%, ${theme.accent2} 0 132px, transparent 134px),
       radial-gradient(circle at 10% 78%, ${theme.accent} 0 160px, transparent 162px),
       linear-gradient(180deg, ${theme.panel} 0%, #07090c 100%);
     box-shadow: 16px 16px 0 rgba(0,0,0,0.45);
@@ -184,6 +176,7 @@ function coverHtml(script: ScriptData): string {
     display: flex;
     gap: 18px;
     align-items: center;
+    min-width: 0;
   }
   .chip {
     display: inline-flex;
@@ -197,20 +190,38 @@ function coverHtml(script: ScriptData): string {
     font-weight: 800;
     line-height: 1;
     box-shadow: 7px 7px 0 ${theme.ink};
+    max-width: 48%;
+    overflow-wrap: anywhere;
+    text-align: center;
   }
   .chip.alt {
     background: ${theme.accent2};
   }
+  .headline-zone {
+    position: absolute;
+    left: 42px;
+    right: 42px;
+    top: 210px;
+    height: 570px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
   .title {
-    margin-top: 70px;
+    margin: 0;
+    max-height: 270px;
+    overflow: hidden;
     font-size: ${titleLines.join("").length > 14 ? 106 : 124}px;
     line-height: 0.98;
     font-weight: 900;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .title .line {
     display: block;
     text-shadow: 5px 5px 0 rgba(0,0,0,0.18);
+    overflow-wrap: anywhere;
   }
   .title .line:first-child {
     color: ${theme.accent};
@@ -219,7 +230,9 @@ function coverHtml(script: ScriptData): string {
     color: white;
   }
   .subtitle {
-    margin-top: 44px;
+    margin: 0;
+    max-height: 150px;
+    overflow: hidden;
     color: rgba(255,255,255,0.88);
     font-size: 50px;
     line-height: 1.18;
@@ -278,7 +291,7 @@ function coverHtml(script: ScriptData): string {
   }
   .screen-line.short { width: 58%; }
   .screen-line.mid { width: 78%; background: ${theme.accent2}; }
-  .mock-word {
+  .product-word {
     position: absolute;
     right: 36px;
     top: 72px;
@@ -287,7 +300,9 @@ function coverHtml(script: ScriptData): string {
     font-size: 55px;
     line-height: 1.04;
     font-weight: 900;
-    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-height: 230px;
+    overflow: hidden;
   }
   .insights {
     position: absolute;
@@ -307,6 +322,7 @@ function coverHtml(script: ScriptData): string {
     font-size: 40px;
     line-height: 1.1;
     font-weight: 800;
+    overflow-wrap: anywhere;
   }
   .verdict {
     position: absolute;
@@ -323,6 +339,9 @@ function coverHtml(script: ScriptData): string {
     font-size: ${verdict.length > 8 ? 62 : 74}px;
     line-height: 1.05;
     font-weight: 900;
+    max-height: 170px;
+    overflow: hidden;
+    overflow-wrap: anywhere;
   }
 </style>
 </head>
@@ -333,8 +352,10 @@ function coverHtml(script: ScriptData): string {
         <div class="chip">${escapeHtml(chip)}</div>
         <div class="chip alt">快速判断</div>
       </div>
-      <h1 class="title">${titleLines.map((line) => `<span class="line">${escapeHtml(line)}</span>`).join("")}</h1>
-      <div class="subtitle">${subtitleLines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>
+      <div class="headline-zone">
+        <h1 class="title">${titleLines.map((line) => `<span class="line">${escapeHtml(line)}</span>`).join("")}</h1>
+        <div class="subtitle">${subtitleLines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>
+      </div>
       <div class="visual">
         <div class="device">
           <div class="device-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -342,7 +363,7 @@ function coverHtml(script: ScriptData): string {
           <div class="screen-line"></div>
           <div class="screen-line short"></div>
         </div>
-        <div class="mock-word">${escapeHtml(monoWord)}</div>
+        <div class="product-word">${escapeHtml(monoWord)}</div>
       </div>
       <div class="verdict">${escapeHtml(verdict)}</div>
       <div class="insights">
@@ -350,131 +371,56 @@ function coverHtml(script: ScriptData): string {
       </div>
     </section>
   </main>
+  <script>
+    const fitText = (element, minSize, maxSize) => {
+      element.style.fontSize = maxSize + "px";
+      let size = maxSize;
+      while (size > minSize && (element.scrollWidth > element.clientWidth + 2 || element.scrollHeight > element.clientHeight + 16)) {
+        size -= 2;
+        element.style.fontSize = size + "px";
+      }
+      return element.scrollWidth <= element.clientWidth + 2 && element.scrollHeight <= element.clientHeight + 16;
+    };
+    const fits = [
+      fitText(document.querySelector(".title"), 48, ${titleLines.join("").length > 14 ? 106 : 124}),
+      fitText(document.querySelector(".subtitle"), 30, 50),
+      fitText(document.querySelector(".product-word"), 28, 55),
+      fitText(document.querySelector(".verdict"), 40, ${verdict.length > 8 ? 62 : 74}),
+      ...Array.from(document.querySelectorAll(".chip")).map((element) => fitText(element, 22, 34)),
+      ...Array.from(document.querySelectorAll(".insight")).map((element) => fitText(element, 28, 40)),
+    ];
+    const poster = document.querySelector(".poster").getBoundingClientRect();
+    const audited = Array.from(document.querySelectorAll(".chip, .title, .subtitle, .visual, .product-word, .verdict, .insight"));
+    const insidePoster = audited.every((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.left >= poster.left - 2 && rect.right <= poster.right + 2 && rect.top >= poster.top - 2 && rect.bottom <= poster.bottom + 2;
+    });
+    document.body.dataset.coverLayout = fits.every(Boolean) && insidePoster ? "ok" : "overflow";
+  </script>
 </body>
 </html>`;
 }
 
 async function captureHtml(htmlPath: string, outputPath: string): Promise<void> {
   const chrome = process.env.TOOLREEL_COVER_CHROME_EXECUTABLE?.trim() || MACOS_CHROME_EXECUTABLE;
-  const profileDir = await mkdtemp(join(tmpdir(), "toolreel-cover-profile-"));
-  try {
-    await new Promise<void>((resolvePromise, reject) => {
-      let settled = false;
-      const child = spawn(chrome, [
-        "--headless=new",
-        ...commonHeadlessChromeFlags(),
-        "--hide-scrollbars",
-        `--user-data-dir=${profileDir}`,
-        `--window-size=${VIDEO_WIDTH},${VIDEO_HEIGHT}`,
-        `--screenshot=${resolve(outputPath)}`,
-        pathToFileURL(resolve(htmlPath)).toString(),
-      ], { stdio: ["ignore", "pipe", "pipe"] });
-      let stderr = "";
-      const finish = (error?: Error) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        clearTimeout(timeout);
-        if (!child.killed) {
-          child.kill("SIGKILL");
-        }
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolvePromise();
-      };
-      const timeout = setTimeout(async () => {
-        child.kill("SIGKILL");
-        if (await screenshotExists(outputPath)) {
-          finish();
-          return;
-        }
-        finish(new Error("Cover browser render timed out."));
-      }, 30000);
-      child.stderr.on("data", (chunk) => {
-        stderr += String(chunk);
-      });
-      child.on("error", (error) => {
-        finish(error);
-      });
-      child.on("close", async (code) => {
-        if (settled) {
-          return;
-        }
-        if (code === 0) {
-          finish();
-          return;
-        }
-        if (await screenshotExists(outputPath)) {
-          finish();
-          return;
-        }
-        finish(new Error(`Cover browser render failed with code ${code}: ${stderr.slice(0, 500)}`));
-      });
-    });
-  } finally {
-    await rm(profileDir, { recursive: true, force: true });
-  }
-}
-
-async function screenshotExists(path: string): Promise<boolean> {
-  try {
-    const info = await stat(path);
-    return info.size > 10_000;
-  } catch {
-    return false;
-  }
-}
-
-async function generateFallbackCover(script: ScriptData, outputPath: string): Promise<void> {
-  const title = coverTitle(script);
-  const subtitle = coverSubtitle(script);
-  const verdict = coverVerdict(script);
-  const filter = [
-    `color=c=0xf6f2e8:s=${VIDEO_WIDTH}x${VIDEO_HEIGHT}:d=1:r=1`,
-    "format=yuv420p",
-    "drawbox=x=70:y=90:w=940:h=1740:color=0x111417@0.08:t=fill",
-    "drawbox=x=96:y=126:w=280:h=74:color=0xffdf3d@1:t=fill",
-    "drawbox=x=96:y=850:w=888:h=410:color=0x111417@0.95:t=fill",
-    "drawbox=x=96:y=1468:w=888:h=136:color=0xffdf3d@1:t=fill",
-    drawAt(coverChip(script), 126, 150, 38, "black"),
-    ...drawHeadlineLines(title, 96, 318, title.length > 12 ? 94 : 112, 8),
-    ...drawCaptionLines(subtitle, 108, 612, subtitle.length > 16 ? 48 : 56, 13, 2, "0x343a40"),
-    drawAt(cleanCoverText(script.toolName, 20), 152, 998, script.toolName.length > 12 ? 64 : 84, "0x7df2c4"),
-    drawAt(verdict, 132, 1514, verdict.length > 12 ? 58 : 68, "black"),
-  ].join(",");
-
-  await runFfmpeg(["-f", "lavfi", "-i", filter, "-frames:v", "1", outputPath]);
-}
-
-function drawAt(text: string, x: number, y: number, size: number, color = "white"): string {
-  return `drawtext=fontfile='${FONT_FILE}':text='${escapeDrawText(text)}':x=${x}:y=${y}:fontsize=${size}:fontcolor=${color}`;
-}
-
-function drawHeadlineLines(text: string, x: number, y: number, size: number, charsPerLine: number): string[] {
-  return displayLines(cleanCoverText(text), charsPerLine, 2).flatMap((line, index) => {
-    const lineY = y + index * Math.round(size * 1.08);
-    return [
-      drawAt(line, x + 5, lineY + 6, size, "black@0.45"),
-      drawAt(line, x, lineY, size, index === 0 ? "0x111417" : "0x111417"),
-    ];
+  const browser = await launch({
+    executablePath: chrome,
+    headless: true,
+    args: [...commonHeadlessChromeFlags(), "--hide-scrollbars"],
   });
-}
-
-function drawCaptionLines(
-  text: string,
-  x: number,
-  y: number,
-  size: number,
-  charsPerLine: number,
-  maxLines: number,
-  color = "white",
-): string[] {
-  return displayLines(cleanCoverText(text), charsPerLine, maxLines).map((line, index) =>
-    drawAt(line, x, y + index * Math.round(size * 1.24), size, color),
-  );
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: VIDEO_WIDTH, height: VIDEO_HEIGHT, deviceScaleFactor: 1 });
+    await page.goto(pathToFileURL(resolve(htmlPath)).toString(), { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForFunction(() => document.body.dataset.coverLayout, { timeout: 10000 });
+    const layout = await page.evaluate(() => document.body.dataset.coverLayout);
+    if (layout !== "ok") {
+      throw new Error("Cover layout audit detected text overflow or content outside the safe frame.");
+    }
+    await page.screenshot({ path: resolve(outputPath), type: "png" });
+  } finally {
+    await browser.close();
+  }
 }
 
 function coverInsights(script: ScriptData): string[] {
@@ -570,21 +516,24 @@ function coverVerdict(script: ScriptData): string {
   return "值不值得试";
 }
 
-function cleanCoverText(text: string, maxChars = 24): string {
-  const normalized = text.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
-  if (visualLength(normalized) <= maxChars) {
-    return normalized;
+function cleanCoverText(text: string, _maxChars = 24): string {
+  return text.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
+}
+
+function coverVisualWord(toolName: string): string {
+  const clean = toolName.replace(/\s+/g, " ").trim();
+  if (visualLength(clean) <= 14) {
+    return clean;
   }
-  const tokens = normalized.match(/[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*|\s+|./g) ?? [normalized];
-  let current = "";
-  for (const token of tokens) {
-    const candidate = `${current}${token}`.trim();
-    if (candidate && visualLength(candidate) > maxChars) {
-      break;
-    }
-    current += token;
+  const capitals = clean.match(/[A-Z]/g)?.join("") ?? "";
+  if (capitals.length >= 2 && capitals.length <= 8) {
+    return capitals;
   }
-  return current.trim() || normalized;
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return words.map((word) => word[0]).join("").slice(0, 8).toUpperCase();
+  }
+  return clean.slice(0, 12);
 }
 
 function visualLength(text: string): number {

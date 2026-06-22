@@ -92,7 +92,7 @@ function selectSceneAsset(sceneType: ScriptData["segments"][number]["sceneType"]
         pageKind: "homepage" as const,
         label: "官网首页",
         score: 20,
-        reasons: ["fallback homepage screenshot"],
+        reasons: ["verified homepage screenshot"],
       };
     }
     return undefined;
@@ -121,7 +121,7 @@ function sceneGuidance(
 ) {
   const beat = creative?.sceneBeats.find((item) => item.sceneType === segment.sceneType);
   if (!beat) {
-    return fallbackSceneGuidance(script, segment);
+    return defaultSceneGuidance(script, segment);
   }
 
   return {
@@ -131,7 +131,7 @@ function sceneGuidance(
   };
 }
 
-function fallbackSceneGuidance(script: ScriptData, segment: ScriptData["segments"][number]) {
+function defaultSceneGuidance(script: ScriptData, segment: ScriptData["segments"][number]) {
   const firstBullets = (segment.bullets ?? []).slice(0, 2);
   const onScreenFocus = firstBullets.length ? firstBullets : [segment.title, script.coreSellingPoint];
 

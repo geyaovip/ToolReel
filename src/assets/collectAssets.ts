@@ -22,11 +22,14 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
     const hasManualOrExistingAssets =
       Boolean(existingUsablePath(existing?.logo) || existingUsablePath(existing?.websiteScreenshot) || existingUsablePath(existing?.productScreenshot)) ||
       manualAssetCount(manual) > 0;
+    if (!hasManualOrExistingAssets) {
+      throw new Error("Real asset collection requires an official URL or verified manual assets.");
+    }
     return scoreAssets({
       logo: existingUsablePath(existing?.logo) ?? "unknown",
       websiteScreenshot: existingUsablePath(existing?.websiteScreenshot) ?? "unknown",
       productScreenshot: existingUsablePath(existing?.productScreenshot) ?? "unknown",
-      source: hasManualOrExistingAssets ? "auto" : "mock",
+      source: "manual",
       assetsDir,
       logoCandidates: mergeManualAssets(existing?.logoCandidates ?? [], manual?.logoCandidates),
       imageCandidates: mergeManualAssets(existing?.imageCandidates ?? [], manual?.imageCandidates),
@@ -161,7 +164,7 @@ export async function collectAssets(input: GenerateInput): Promise<AssetData> {
     websiteScreenshot: screenshotPath ?? "unknown",
     productScreenshot: screenshotPath ?? "unknown",
     websiteScrollScreenshot: screenshotPath,
-    source: screenshotPath || logoPath || metadata ? "auto" : "mock",
+    source: "auto",
     assetsDir,
     homepage: {
       url: homepageUrl,
@@ -399,7 +402,7 @@ async function tryCaptureScreenshot(
   } catch (error) {
     notes.push(
       hasExistingScreenshot
-        ? `Homepage screenshot refresh skipped after capture error; reused existing screenshot.`
+        ? `Homepage screenshot refresh failed; reused an existing real screenshot.`
         : `Homepage screenshot failed: ${messageOf(error)}`,
     );
     return undefined;
@@ -409,14 +412,14 @@ async function tryCaptureScreenshot(
 async function tryDownloadFirst(
   urls: string[],
   outputDir: string,
-  fallbackName: string,
+  defaultName: string,
   notes: string[],
 ): Promise<string | undefined> {
   for (const url of urls) {
     try {
-      return await downloadAsset(url, outputDir, fallbackName);
+      return await downloadAsset(url, outputDir, defaultName);
     } catch (error) {
-      notes.push(`Logo candidate skipped (${url}): ${messageOf(error)}`);
+      notes.push(`Logo candidate rejected (${url}): ${messageOf(error)}`);
     }
   }
   return undefined;
@@ -443,7 +446,7 @@ async function readExistingAssets(outputDir: string): Promise<AssetData | undefi
 }
 
 function existingUsablePath(path: string | undefined): string | undefined {
-  if (!path || path === "unknown" || path.startsWith("mock://") || path.startsWith("http")) {
+  if (!path || path === "unknown" || path.startsWith("http")) {
     return undefined;
   }
   return path;
@@ -490,7 +493,7 @@ async function cacheHomepageScreenshot(path: string, assetsDir: string, notes: s
     await ensureDir(cacheDir);
     await copyFile(path, join(cacheDir, "homepage.png"));
   } catch (error) {
-    notes.push(`Homepage screenshot cache skipped: ${messageOf(error)}`);
+    notes.push(`Homepage screenshot cache write failed: ${messageOf(error)}`);
   }
 }
 

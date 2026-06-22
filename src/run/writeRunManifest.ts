@@ -66,7 +66,6 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
       researchSourcePageCount: args.research.sourcePages?.length ?? 0,
       comparisonTargetCount: args.research.comparisonTargets?.length ?? 0,
       unknownCount: args.research.unknowns?.length ?? 0,
-      skippedSceneCount: args.scenes.filter((scene) => scene.renderStatus === "skipped").length,
     },
     checks: args.validation.checks,
     warnings: collectWarnings(args),
@@ -78,13 +77,9 @@ export async function writeRunManifest(args: WriteRunManifestArgs): Promise<RunM
 
 function collectWarnings(args: WriteRunManifestArgs): string[] {
   return [
-    ...(args.voice.fallbackReason ? [`Voice fallback: ${args.voice.fallbackReason}`] : []),
     ...(args.assets.notes ?? []).map((note) => `Asset note: ${note}`),
     ...(args.research.notes ?? []).map((note) => `Research note: ${note}`),
     ...(args.research.unknowns ?? []).map((unknown) => `Research unknown: ${unknown}`),
-    ...args.scenes
-      .filter((scene) => scene.renderStatus === "skipped")
-      .map((scene) => `Scene skipped: ${scene.id} - ${scene.renderSkipReason ?? "unknown reason"}`),
     `Creative angle: ${args.creative.selectedAngle.title}`,
     ...args.validation.checks
       .filter((check) => !check.passed)

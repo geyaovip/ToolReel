@@ -174,7 +174,7 @@ async function toBrowserImageSource(
   maxWidth: number,
   maxHeight: number,
 ): Promise<string> {
-  if (!source || source === "unknown" || source.startsWith("mock://") || source.startsWith("data:")) {
+  if (!source || source === "unknown" || source.startsWith("data:")) {
     return source;
   }
 

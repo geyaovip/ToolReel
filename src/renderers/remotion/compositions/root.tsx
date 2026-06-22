@@ -33,10 +33,10 @@ const defaultProps: ToolReelSceneProps = {
     segments: [],
   },
   assets: {
-    logo: "mock://logo",
-    websiteScreenshot: "mock://website",
-    productScreenshot: "mock://product",
-    source: "mock",
+    logo: "",
+    websiteScreenshot: "",
+    productScreenshot: "",
+    source: "auto",
   },
   captions: [
     {

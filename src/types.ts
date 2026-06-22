@@ -189,7 +189,7 @@ export type AssetData = {
   productScreenshot: string;
   websiteScrollScreenshot?: string;
   productPageScreenshot?: string;
-  source: "auto" | "mock";
+  source: "auto" | "manual";
   assetsDir?: string;
   homepage?: {
     url: string;
@@ -246,7 +246,7 @@ export type Caption = {
   sceneIndex?: number;
 };
 
-export type VoiceProvider = "minimax" | "mock";
+export type VoiceProvider = "minimax";
 
 export type VoiceData = {
   provider: VoiceProvider;
@@ -255,7 +255,6 @@ export type VoiceData = {
   durationSeconds?: number;
   model?: string;
   voiceId?: string;
-  fallbackReason?: string;
 };
 
 export type PlannedScene = {
@@ -274,8 +273,7 @@ export type PlannedScene = {
     score?: number;
     reasons?: string[];
   };
-  renderStatus?: "planned" | "rendered" | "skipped";
-  renderSkipReason?: string;
+  renderStatus?: "planned" | "rendered";
   renderQuality?: SceneRenderQuality;
   duration: number;
   renderer?: RendererName;
@@ -335,7 +333,6 @@ export type RunManifest = {
     researchSourcePageCount: number;
     comparisonTargetCount: number;
     unknownCount: number;
-    skippedSceneCount: number;
   };
   checks: OutputValidationCheck[];
   warnings: string[];

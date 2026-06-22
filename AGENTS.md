@@ -4,9 +4,9 @@
 
 ## 当前阶段
 
-- 当前目标是先建立开发规范和项目约束，不直接开始业务实现。
-- 第一阶段只做 CLI MVP，不做后台、数据库、登录系统、复杂管理台。
-- 实现时优先跑通完整流水线，再逐步替换 mock 数据和占位模块。
+- 当前目标是持续完善 CLI 视频生产流水线，不做后台、数据库、登录系统或复杂管理台。
+- 生产流水线只允许使用真实 research、真实素材、真实 TTS 和真实渲染结果。
+- 缺少真实来源、素材、API Key 或渲染能力时必须明确失败，不能生成填充内容。
 
 ## 产品定位
 
@@ -45,7 +45,9 @@ ToolReel 不是普通视频剪辑器，而是自动化视频生产流水线。�
 - 每个 Scene 单独渲染为 MP4，最后用 FFmpeg 合成 `final.mp4`。
 - Remotion 负责卡片、标题、卖点、价格、人群、榜单、对比、教程、CTA 等结构化动画。
 - HyperFrames 负责官网展示、网页滚动、Landing Page 展示、产品官网高亮等网站转视频场景。
-- 所有 pipeline 模块都应可替换：先 mock，后真实 API。
+- 所有 pipeline 模块都应可替换，但生产入口不得提供 mock 模式。
+- 真实 research 或真实素材不足时中断任务，不允许用通用介绍、假截图或测试音频补齐。
+- 规划为 HyperFrames 的 Scene 必须执行真实 HyperFrames CLI 渲染并通过 QA，不得跳过。
 
 ## 推荐目录
 
@@ -118,7 +120,6 @@ outputs/YYYY-MM-DD-tool-slug/
 - 修改前先理解现有结构，不做无关重构。
 - 保持模块边界清晰：research、script、assets、tts、subtitles、scenes、router、renderers、merge、cover 不要互相硬耦合。
 - 数据交换优先使用 JSON 文件和明确类型。
-- 任何外部 API 都必须有 mock 或 fallback，缺少 API Key 不能让 MVP pipeline 中断。
+- 外部 API 缺少配置或调用失败时必须中断并给出可操作错误，不得自动切换到 mock 或低质量保底内容。
 - 新增功能时同步更新相关文档、类型和运行说明。
 - 验证要覆盖 CLI 到输出文件的主路径；媒体渲染相关变更至少检查文件是否生成、规格是否符合预期。
-

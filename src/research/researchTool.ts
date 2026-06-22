@@ -27,7 +27,7 @@ export async function researchTool(input: GenerateInput): Promise<ResearchResult
 
 async function researchSingleTool(input: GenerateInput): Promise<ResearchResult> {
   if (!input.url.trim()) {
-    return topicResearch(input);
+    throw new Error(`Real research requires an official URL for ${input.name}.`);
   }
 
   const officialUrl = normalizeUrl(input.url);
@@ -50,7 +50,9 @@ async function researchSingleTool(input: GenerateInput): Promise<ResearchResult>
     if (cached) {
       return cached;
     }
-    return fallbackResearch(input, officialUrl, notes);
+    throw new Error(
+      `Real research failed for ${input.name}. No verified page content or reusable verified research was available. ${notes.join(" | ")}`,
+    );
   }
 
   const summary = summarizePages(input.name, pages);
@@ -186,49 +188,6 @@ function isReusableResearch(research: ResearchResult): boolean {
   );
 }
 
-function topicResearch(input: GenerateInput): ResearchResult {
-  const topic = input.topic ?? input.name;
-  return {
-    toolName: input.name,
-    officialUrl: "",
-    summary: `${topic} 适合做成工具榜单型视频，本期先围绕场景、筛选标准和候选工具方向做结构化规划。`,
-    pricing: "unknown",
-    confidence: "low",
-    insights: [
-      {
-        category: "positioning",
-        title: "榜单主题",
-        detail: `${topic} 需要先讲清楚筛选场景，而不是直接给无证据排名。`,
-        sourceUrl: "manual://topic",
-        confidence: "low",
-      },
-      {
-        category: "use_case",
-        title: "按使用场景筛选",
-        detail: "榜单视频优先解释每类工具适合什么任务，再给出试用判断。",
-        sourceUrl: "manual://topic",
-        confidence: "low",
-      },
-      {
-        category: "workflow",
-        title: "用工作流串起来",
-        detail: "把候选工具放进同一个工作流里比较，避免做成空泛清单。",
-        sourceUrl: "manual://topic",
-        confidence: "low",
-      },
-    ],
-    targetUsers: ["想快速筛选 AI 工具的人", "正在搭建 AI 工作流的人"],
-    sellingPoints: ["先讲筛选标准", "再讲适用场景", "最后给试用顺序"],
-    positioning: `${topic} 是一个场景型工具榜单主题。`,
-    highlights: [],
-    useCases: ["快速了解某个场景下有哪些工具", "按任务选择适合先试的工具", "建立工具选择地图"],
-    evidence: [],
-    sourcePages: [],
-    unknowns: ["主题榜单未提供具体官网来源，不能生成无证据排名或商业结论。"],
-    notes: ["Top-list topic mode uses topic-level planning until concrete tool URLs are provided."],
-  };
-}
-
 function classifyPageKind(url: string, links: ExtractedPage["links"] | undefined): ResearchResult["sourcePages"][number]["kind"] {
   return links?.find((link) => stripUrl(link.url) === stripUrl(url))?.kind ?? "other";
 }
@@ -246,12 +205,12 @@ async function fetchExtractedPage(url: string, notes: string[]): Promise<Extract
       },
     });
     if (!response.ok) {
-      notes.push(`Research fetch skipped ${url}: HTTP ${response.status}`);
+      notes.push(`Research fetch rejected ${url}: HTTP ${response.status}`);
       return undefined;
     }
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("html")) {
-      notes.push(`Research fetch skipped ${url}: ${contentType || "non-html response"}`);
+      notes.push(`Research fetch rejected ${url}: ${contentType || "non-html response"}`);
       return undefined;
     }
     return extractPage(await response.text(), url);
@@ -259,26 +218,6 @@ async function fetchExtractedPage(url: string, notes: string[]): Promise<Extract
     notes.push(`Research fetch failed ${url}: ${error instanceof Error ? error.message : String(error)}`);
     return undefined;
   }
-}
-
-function fallbackResearch(input: GenerateInput, officialUrl: string, notes: string[]): ResearchResult {
-  return {
-    toolName: input.name,
-    officialUrl,
-    summary: `${input.name} 是一个值得快速了解的 AI 工具，本期先用官网入口和基础信息做快速判断。`,
-    pricing: "unknown",
-    confidence: "low",
-    insights: [],
-    targetUsers: ["想快速判断 AI 工具价值的人"],
-    sellingPoints: ["先看定位", "再看核心场景", "最后判断是否值得试用"],
-    positioning: `${input.name} 是一个值得快速了解的 AI 工具。`,
-    highlights: [],
-    useCases: [],
-    evidence: [],
-    sourcePages: [],
-    unknowns: ["官网文本抓取失败，不能可靠判断产品亮点、价格或适用人群。"],
-    notes,
-  };
 }
 
 function confidenceFor(pages: ExtractedPage[], evidenceCount: number): ResearchResult["confidence"] {

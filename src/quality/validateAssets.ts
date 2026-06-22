@@ -24,7 +24,7 @@ export function validateAssetsForMvp(assets: AssetData): OutputValidationCheck[]
       passed: !requiresAutoAssetCoverage || hasWebsiteVisual || hasWebsitePageCandidate,
       actual: websiteDemoVisual ?? "missing",
       expected: requiresAutoAssetCoverage
-        ? "usable visual asset, or a selected page candidate that can be skipped if screenshot capture fails"
+        ? "usable local visual asset; screenshot capture failure must stop HyperFrames rendering"
         : "manual/topic mode can defer website visual assets",
     },
     {
@@ -48,7 +48,7 @@ export function validateAssetsForMvp(assets: AssetData): OutputValidationCheck[]
 }
 
 function usableLocalAsset(path: string | undefined): string | undefined {
-  return path && path !== "unknown" && !path.startsWith("mock://") && !path.startsWith("http")
+  return path && path !== "unknown" && !path.startsWith("http")
     ? path
     : undefined;
 }

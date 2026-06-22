@@ -1,23 +1,23 @@
-import { access, mkdtemp, rm, stat } from "node:fs/promises";
-import { spawn } from "node:child_process";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { access, stat } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { launch } from "puppeteer-core";
 import { ensureDir } from "../utils/file.ts";
 import { cleanupStaleBrowserProfiles, commonHeadlessChromeFlags, MACOS_CHROME_EXECUTABLE } from "../utils/browser.ts";
 
 const DEFAULT_CHROME_EXECUTABLE = resolve("scripts/remotion-chrome-wrapper.sh");
-const SCREENSHOT_TIMEOUT_MS = Number(process.env.TOOLREEL_SCREENSHOT_TIMEOUT_MS || 60000);
+const SCREENSHOT_TIMEOUT_MS = Number(process.env.TOOLREEL_SCREENSHOT_TIMEOUT_MS || 90000);
 const MIN_SCREENSHOT_BYTES = 10_000;
 
 type ScreenshotAttempt = {
   width: number;
   height: number;
-  virtualTimeBudgetMs: number;
+  settleMs: number;
+  timeoutMs: number;
 };
 
 const SCREENSHOT_ATTEMPTS: ScreenshotAttempt[] = [
-  { width: 1440, height: 2200, virtualTimeBudgetMs: 8000 },
-  { width: 1080, height: 1920, virtualTimeBudgetMs: 12000 },
+  { width: 1440, height: 2200, settleMs: 1800, timeoutMs: Math.min(SCREENSHOT_TIMEOUT_MS, 60000) },
+  { width: 1080, height: 1920, settleMs: 3000, timeoutMs: SCREENSHOT_TIMEOUT_MS },
 ];
 
 export async function captureWebsiteScreenshot(url: string, outputPath: string): Promise<string> {
@@ -28,7 +28,7 @@ export async function captureWebsiteScreenshot(url: string, outputPath: string):
 
   for (const attempt of SCREENSHOT_ATTEMPTS) {
     try {
-      await captureWithChrome(url, outputPath, chrome, attempt);
+      await captureWithBrowser(url, outputPath, chrome, attempt);
       await assertScreenshotUsable(outputPath);
       return outputPath;
     } catch (error) {
@@ -36,39 +36,38 @@ export async function captureWebsiteScreenshot(url: string, outputPath: string):
     }
   }
 
-  throw lastError;
+  throw new Error(
+    `Website screenshot failed after ${SCREENSHOT_ATTEMPTS.length} real-browser attempts: ${messageOf(lastError)}`,
+  );
 }
 
-async function captureWithChrome(
+async function captureWithBrowser(
   url: string,
   outputPath: string,
   chrome: string,
   attempt: ScreenshotAttempt,
 ): Promise<void> {
-  const profileDir = await mkdtemp(join(tmpdir(), "toolreel-screenshot-profile-"));
+  const browser = await launch({
+    executablePath: chrome,
+    headless: true,
+    protocolTimeout: Math.max(attempt.timeoutMs, 120000),
+    args: [...commonHeadlessChromeFlags(), "--hide-scrollbars", `--window-size=${attempt.width},${attempt.height}`],
+  });
 
   try {
-    await runChrome(
-      [
-        "--headless=new",
-        ...commonHeadlessChromeFlags(),
-        "--hide-scrollbars",
-        "--run-all-compositor-stages-before-draw",
-        `--virtual-time-budget=${attempt.virtualTimeBudgetMs}`,
-        `--user-data-dir=${profileDir}`,
-        `--window-size=${attempt.width},${attempt.height}`,
-        `--screenshot=${outputPath}`,
-        url,
-      ],
-      chrome,
-    );
+    const page = await browser.newPage();
+    await page.setViewport({ width: attempt.width, height: attempt.height, deviceScaleFactor: 1 });
+    page.setDefaultNavigationTimeout(attempt.timeoutMs);
+    page.setDefaultTimeout(attempt.timeoutMs);
+    const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: attempt.timeoutMs });
+    if (response && response.status() >= 400) {
+      throw new Error(`Website returned HTTP ${response.status()} for ${url}.`);
+    }
+    await wait(attempt.settleMs);
+    await page.screenshot({ path: resolve(outputPath), type: "png", captureBeyondViewport: false });
   } finally {
-    await rm(profileDir, { recursive: true, force: true });
+    await browser.close();
   }
-}
-
-async function assertExecutableExists(path: string): Promise<void> {
-  await access(path);
 }
 
 async function firstUsableChrome(): Promise<string> {
@@ -81,10 +80,10 @@ async function firstUsableChrome(): Promise<string> {
 
   for (const candidate of candidates) {
     try {
-      await assertExecutableExists(candidate);
+      await access(candidate);
       return candidate;
     } catch {
-      // Try the next Chrome candidate.
+      // Try the next installed browser runtime.
     }
   }
 
@@ -98,30 +97,10 @@ async function assertScreenshotUsable(path: string): Promise<void> {
   }
 }
 
-function runChrome(args: string[], chrome: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(chrome, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stderr = "";
-    const timeout = setTimeout(() => {
-      child.kill("SIGKILL");
-      reject(new Error(`Chrome screenshot timed out after ${SCREENSHOT_TIMEOUT_MS}ms.`));
-    }, SCREENSHOT_TIMEOUT_MS);
+function wait(ms: number): Promise<void> {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
+}
 
-    child.stderr.on("data", (chunk) => {
-      stderr += String(chunk);
-    });
-
-    child.on("error", (error) => {
-      clearTimeout(timeout);
-      reject(error);
-    });
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(new Error(`Chrome screenshot failed with code ${code}: ${stderr.slice(0, 500)}`));
-    });
-  });
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

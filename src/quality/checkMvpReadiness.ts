@@ -73,7 +73,7 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
       bundle.scenes.map((scene) => scene.type).join(", "),
       requiredScenes.join(", "),
     ),
-    check("realTtsProvider", bundle.run.summary.voiceProvider !== "mock", bundle.run.summary.voiceProvider, "real TTS provider"),
+    check("realTtsProvider", bundle.run.summary.voiceProvider === "minimax", bundle.run.summary.voiceProvider, "configured real TTS provider"),
     check("captionCount", bundle.captions.length >= 8, bundle.captions.length, ">=8"),
     check(
       "researchSources",
@@ -126,7 +126,7 @@ export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness
     deferred: [
       {
         item: "HyperFrames 高级网站转视频",
-        reason: "当前已支持网页类 scene、截图滚动和缺素材跳过；更精细的 DOM 区域识别和真实录屏仍可后续优化。",
+        reason: "当前已支持网页类 scene 的真实 HyperFrames CLI 渲染；更精细的 DOM 区域识别和真实录屏仍可后续优化。",
         targetVersion: "post v1.4",
       },
       {

@@ -61,7 +61,7 @@ const REQUIRED_CHECKS = [
 export async function checkMvpReadiness(outputDir: string): Promise<MvpReadiness> {
   const bundle = await readArtifacts(outputDir);
   const requiredScenes = requiredScenesFor(bundle.run.input.type);
-  const requiresUrlAssets = bundle.run.input.type !== "top_list";
+  const requiresUrlAssets = true;
   const checks = [
     check("runPassed", bundle.run.status === "passed", bundle.run.status, "passed"),
     check("validationPassed", bundle.validation.passed, bundle.validation.passed, true),
@@ -154,8 +154,8 @@ function requiredScenesFor(videoType: VideoType): SceneType[] {
   if (videoType === "website_demo") {
     return ["HOOK", "LANDING_PAGE_DEMO", "PRODUCT_PAGE_SCROLL", "CTA"];
   }
-  if (videoType === "update_news") {
-    return ["HOOK", "WEBSITE_DEMO", "FEATURE", "WORKFLOW", "CTA"];
+  if (videoType === "news" || videoType === "update_news") {
+    return ["HOOK", "WEBSITE_DEMO", "FEATURE", "WORKFLOW", "RECOMMENDATION", "CTA"];
   }
   return ["HOOK", "WEBSITE_DEMO", "SELLING_POINT", "CTA"];
 }

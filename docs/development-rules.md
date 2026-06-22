@@ -46,6 +46,8 @@ Research 和脚本结构不应被固定为“介绍、卖点、价格、人群�
 | `tutorial` | AI 工具教程 | Remotion，官网演示可用 HyperFrames |
 | `comparison` | 多个 AI 工具对比 | Remotion |
 | `website_demo` | 官网展示类视频 | HyperFrames |
+| `news` | AI 新模型、新产品和行业发布资讯 | Remotion + HyperFrames 混合 |
+| `update_news` | 兼容旧命令的产品更新速递 | Remotion + HyperFrames 混合 |
 
 ## 4. Scene 架构
 
@@ -69,6 +71,8 @@ Research 和脚本结构不应被固定为“介绍、卖点、价格、人群�
 - `PRODUCT_PAGE_SCROLL`
 
 Scene 规划必须由视频类型、脚本文案和素材可用性共同决定。
+
+新闻资讯必须按“发生了什么、官方证据、核心变化、影响对象、是否值得跟进”组织。不能使用来源无法确认的“刚刚”“重磅”“颠覆”等措辞，也不能把尚未开放的能力说成所有用户已经可用。
 
 ## 5. Renderer Router
 

@@ -61,6 +61,13 @@ export async function validateProductionQuality({
     ),
     check("coverIdeasCount", cover.ideas.length >= 2 && cover.ideas.length <= 3, cover.ideas.length, "2-3"),
     check(
+      "coverCandidatesRecorded",
+      cover.candidates.some((item) => item.id === "poster" && item.available) &&
+        cover.candidates.some((item) => item.id === "ai"),
+      cover.candidates.map((item) => `${item.id}:${item.available}`).join(", "),
+      "poster and AI candidate slots recorded",
+    ),
+    check(
       "coverSelectedRelevant",
       coverTitleIsRelevant(cover.selected.title, script),
       cover.selected.title,

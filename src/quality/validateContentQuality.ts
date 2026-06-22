@@ -34,7 +34,7 @@ export function validateContentQuality(
   const unsupportedClaims = findUnsupportedClaims(text, research);
   const longEnglishLines = text.filter(hasLongEnglishRun);
   const insightCategories = new Set((research.insights ?? []).map((item) => item.category));
-  const requiresSourceCoverage = script.videoType !== "top_list";
+  const requiresSourceCoverage = true;
   const comparisonTargets = research.comparisonTargets ?? [];
   const weakComparisonTargets = comparisonTargets.filter(
     (target) => target.sourcePageCount < 1 || target.evidenceCount < 1,

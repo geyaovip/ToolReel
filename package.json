@@ -11,7 +11,9 @@
     "mvp:check": "node --experimental-strip-types scripts/check-mvp-readiness.ts",
     "commit:message": "node --experimental-strip-types scripts/commit-message.ts",
     "tts:preview": "node --experimental-strip-types scripts/preview-voices.ts",
-    "browser:doctor": "node --experimental-strip-types scripts/check-browser-health.ts"
+    "browser:doctor": "node --experimental-strip-types scripts/check-browser-health.ts",
+    "cover:build": "node --experimental-strip-types scripts/build-cover-candidates.ts",
+    "cover:select": "node --experimental-strip-types scripts/select-cover.ts"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

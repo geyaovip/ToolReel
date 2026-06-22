@@ -36,8 +36,8 @@ export async function generateScript(
   if (input.type === "website_demo") {
     return { ...base, segments: websiteDemoSegments(input, research, highlights, hook).slice(0, 7) };
   }
-  if (input.type === "update_news") {
-    return { ...base, segments: updateNewsSegments(input, research, highlights, useCases, hook).slice(0, 7) };
+  if (input.type === "news" || input.type === "update_news") {
+    return { ...base, hook: buildNewsHook(input, research, highlights), segments: newsSegments(input, research, highlights, useCases).slice(0, 7) };
   }
 
   const segments: ScriptSegment[] = [
@@ -348,46 +348,73 @@ function websiteDemoSegments(
   ];
 }
 
-function updateNewsSegments(
+function newsSegments(
   input: GenerateInput,
   research: ResearchResult,
   highlights: Array<{ title: string; detail: string; sourceUrl: string }>,
   useCases: string[],
-  hook: string,
 ): ScriptSegment[] {
-  const update = highlights[0]?.title ?? "最近值得关注的变化";
+  const primary = highlights[0];
+  const secondary = highlights[1];
+  const update = primary?.title ?? research.sourcePages?.[0]?.title ?? input.name;
+  const sourceLabel = research.sourcePages?.[0]?.title ?? "官方发布页面";
   return [
     {
       sceneType: "HOOK",
-      title: `${input.name} 更新速看`,
-      narration: `${hook} 这条按更新速递讲，只看这次变化会影响什么场景，不夸大成颠覆式结论。`,
-      bullets: ["只看变化", "看影响场景", "不夸大结论"],
+      title: `${input.name} 新消息`,
+      narration: `${buildNewsHook(input, research, highlights)} 这条只讲清楚发生了什么、核心变化是什么，以及谁需要关注。`,
+      bullets: compactBullets([update, "发生了什么", "影响谁"], 3),
     },
     {
       sceneType: "WEBSITE_DEMO",
-      title: "先找更新来源",
-      narration: `先看官方页面、博客或 changelog。更新类内容一定要先找来源，再讲它可能带来的影响。`,
-      bullets: ["官方来源", "更新内容", "影响判断"],
+      title: "先看官方来源",
+      narration: `先看来源。这次信息来自 ${shortClause(sourceLabel)}。新闻资讯先确认官方原文，再做解释，不拿二手传言当结论。`,
+      bullets: compactBullets([sourceLabel, "官方原文", "不是二手传言"], 3),
     },
     {
       sceneType: "FEATURE",
-      title: naturalTitle(update, "更新重点"),
-      narration: `这次最值得看的变化是 ${update}。如果你已经在用 ${input.name}，这里可能会影响日常流程。`,
-      bullets: compactBullets([update, highlights[0]?.detail], 3),
+      title: naturalTitle(update, "核心变化"),
+      narration: `核心变化先看这一点：${primary?.detail ?? research.summary} 不需要把发布内容全部复述一遍，先抓住最影响判断的信息。`,
+      bullets: compactBullets([update, primary?.detail], 3),
     },
+    ...(secondary
+      ? [{
+          sceneType: "SELLING_POINT" as const,
+          title: naturalTitle(secondary.title, "再看一个变化"),
+          narration: `第二个值得知道的变化是：${secondary.detail} 它和前一个信息点一起，才构成这次发布的完整价值。`,
+          bullets: compactBullets([secondary.title, secondary.detail], 3),
+        }]
+      : []),
     {
       sceneType: "WORKFLOW",
-      title: "影响什么场景",
-      narration: `它可能影响的场景是 ${toChineseList(useCases.slice(0, 2))}。如果你不用这些场景，就不用急着跟进。`,
-      bullets: compactBullets([useCases[0], useCases[1], "不用急着跟进"], 3),
+      title: "谁需要关注",
+      narration: useCases.length
+        ? `这次变化更值得 ${toChineseList(useCases.slice(0, 2))} 相关用户关注。是否重要，要看它有没有进入你的真实任务。`
+        : `谁需要关注，取决于这次变化有没有进入真实任务。没有明确场景时，不替用户制造焦虑。`,
+      bullets: compactBullets([useCases[0], useCases[1], "看真实任务"], 3),
+    },
+    {
+      sceneType: "RECOMMENDATION",
+      title: "值不值得跟进",
+      narration: `最后给判断：先看官方能力是否已经开放，再看它能不能解决你正在遇到的问题。知道消息和立刻迁移，是两件事。`,
+      bullets: ["确认是否开放", "对应真实问题", "再决定跟进"],
     },
     {
       sceneType: "CTA",
-      title: "要不要更新",
-      narration: `最后判断：更新值得知道，但不一定马上迁移。先看它有没有解决你正在遇到的问题。`,
-      bullets: ["值得知道", "不急迁移", "看真实问题"],
+      title: "一句话记住",
+      narration: `一句话记住这条消息：${shortClause(update)}。其余信息，可以等真正用到时再深入看。`,
+      bullets: compactBullets([update, "先记核心变化", "需要时再深入"], 3),
     },
   ];
+}
+
+function buildNewsHook(
+  input: GenerateInput,
+  research: ResearchResult,
+  highlights: Array<{ title: string; detail: string; sourceUrl: string }>,
+): string {
+  const headline = highlights[0]?.title ?? research.sourcePages?.[0]?.title ?? research.summary;
+  return `${input.name} 有新消息。先别只看热搜标题，官方信息里最值得关注的是：${shortClause(headline)}`;
 }
 
 function insightHighlights(research: ResearchResult): Array<{ title: string; detail: string; sourceUrl: string }> {

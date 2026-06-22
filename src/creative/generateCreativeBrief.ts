@@ -87,6 +87,9 @@ export async function generateCreativeBrief(
     .toLowerCase();
 
   const proofPool = buildProofPool(research);
+  if (input.type === "news" || input.type === "update_news") {
+    return buildNewsCreativeBrief(input, research, proofPool);
+  }
   const candidateAngles = angleSeeds
     .map((seed) => scoreAngle(seed, corpus, proofPool))
     .sort((a, b) => b.score - a.score);
@@ -99,6 +102,85 @@ export async function generateCreativeBrief(
     candidateAngles: candidateAngles.slice(0, 4),
     sceneBeats: buildSceneBeats(input, research, selectedAngle),
     coverIdeas: buildCoverIdeas(input, selectedAngle),
+  };
+}
+
+function buildNewsCreativeBrief(
+  input: GenerateInput,
+  research: ResearchResult,
+  proofPool: string[],
+): CreativeBrief {
+  const headline = research.insights?.[0]?.title ?? research.highlights?.[0]?.title ?? research.sourcePages?.[0]?.title ?? input.name;
+  const angle: CreativeAngle = {
+    id: "news-impact",
+    title: "先讲发生了什么，再讲影响",
+    thesis: "资讯视频先确认官方事实，再用最少信息讲清核心变化、影响对象和跟进价值。",
+    audience: "想快速理解 AI 行业新发布和产品变化的人",
+    hook: "别只看热搜标题，先看官方到底发布了什么。",
+    tone: "curious",
+    score: 100,
+    proofPoints: proofPool.slice(0, 4),
+    watchOuts: [
+      "不使用无法从来源确认的刚刚、重磅、颠覆等措辞",
+      "不把尚未开放的能力写成所有用户已经可用",
+      "不把推测写成官方结论",
+      "不复读整篇发布稿，只保留核心变化和影响",
+    ],
+  };
+  return {
+    toolName: input.name,
+    generatedAt: new Date().toISOString(),
+    selectedAngle: angle,
+    candidateAngles: [angle],
+    sceneBeats: [
+      {
+        sceneType: "HOOK",
+        intent: "用一句话讲清这次发生了什么",
+        visualFocus: "新闻主体、核心变化、强判断标题",
+        narrationHint: angle.hook,
+        onScreenFocus: [cleanText(headline, 22) ?? input.name, "发生了什么"],
+      },
+      {
+        sceneType: "WEBSITE_DEMO",
+        intent: "展示官方发布页，建立资讯可信度",
+        visualFocus: "官方原文、发布页面、关键证据",
+        narrationHint: "先确认官方来源，再解释变化。",
+        onScreenFocus: ["官方来源", "关键证据"],
+      },
+      {
+        sceneType: "FEATURE",
+        intent: "提炼最值得知道的核心变化",
+        visualFocus: "核心变化、能力重点、信息对比",
+        narrationHint: proofPool[0] ?? headline,
+        onScreenFocus: [proofPool[0] ?? headline, "核心变化"],
+      },
+      {
+        sceneType: "WORKFLOW",
+        intent: "解释谁会受到影响以及对应场景",
+        visualFocus: "影响对象、真实场景、使用变化",
+        narrationHint: research.useCases?.[0] ?? "看它是否进入真实任务",
+        onScreenFocus: [research.useCases?.[0] ?? "谁需要关注", "看真实任务"],
+      },
+      {
+        sceneType: "RECOMMENDATION",
+        intent: "给出是否值得跟进的克制判断",
+        visualFocus: "是否开放、真实问题、跟进建议",
+        narrationHint: "知道消息和立刻迁移是两件事。",
+        onScreenFocus: ["确认是否开放", "再决定跟进"],
+      },
+    ],
+    coverIdeas: [
+      {
+        title: `${input.name} 发布了什么`,
+        subtitle: "三点讲清核心变化",
+        rationale: "资讯型封面，直接给出事件和阅读收益。",
+      },
+      {
+        title: `${input.name} 新消息`,
+        subtitle: "谁需要关注",
+        rationale: "影响型封面，强调与用户的关系。",
+      },
+    ],
   };
 }
 

@@ -485,7 +485,7 @@ async function reusableHomepageScreenshot(toolName: string, notes: string[]): Pr
 
 async function cacheHomepageScreenshot(path: string, assetsDir: string, notes: string[]): Promise<void> {
   try {
-    const toolSlug = assetsDir.split("/").at(-2)?.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/-(tutorial|comparison|top-list|website-demo|update-news)$/, "");
+    const toolSlug = assetsDir.split("/").at(-2)?.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/-(tutorial|comparison|top-list|website-demo|news|update-news)$/, "");
     if (!toolSlug || path.includes("_asset-cache")) {
       return;
     }

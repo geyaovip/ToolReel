@@ -1,11 +1,13 @@
-import { writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { copyFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { launch } from "puppeteer-core";
 import type { AssetData, CoverData, ScriptData } from "../types.ts";
 import { VIDEO_HEIGHT, VIDEO_WIDTH } from "../config.ts";
 import { cleanupStaleBrowserProfiles, commonHeadlessChromeFlags, MACOS_CHROME_EXECUTABLE } from "../utils/browser.ts";
 import { ensureDir } from "../utils/file.ts";
+import { runFfmpeg } from "../utils/ffmpeg.ts";
 
 type CoverTheme = {
   background: string;
@@ -72,6 +74,15 @@ const THEMES: Record<ScriptData["videoType"], CoverTheme> = {
     muted: "#423c50",
     chipText: "#111417",
   },
+  news: {
+    background: "#f2f0fb",
+    panel: "#171225",
+    accent: "#ffdf3d",
+    accent2: "#ff5f7e",
+    ink: "#111018",
+    muted: "#423c50",
+    chipText: "#111417",
+  },
 };
 
 export async function generateCover(
@@ -79,18 +90,48 @@ export async function generateCover(
   _assets: AssetData,
   outputPath: string,
 ): Promise<CoverData> {
-  await generateHtmlCover(script, outputPath);
-  return coverData(script, outputPath);
+  const outputDir = dirname(outputPath);
+  const posterPath = join(outputDir, "cover-poster.png");
+  const aiSourcePath = resolve(
+    process.env.TOOLREEL_AI_COVER_PATH?.trim() || join(outputDir, "cover-ai-source.png"),
+  );
+  const aiPath = join(outputDir, "cover-ai.png");
+  const aiPromptPath = join(outputDir, "cover-ai-prompt.json");
+
+  await generateHtmlCover(script, posterPath);
+  await writeFile(aiPromptPath, `${JSON.stringify(aiCoverPrompt(script), null, 2)}\n`, "utf8");
+
+  const aiAvailable = existsSync(aiSourcePath);
+  if (aiAvailable) {
+    await normalizeAiCover(aiSourcePath, aiPath);
+  }
+
+  const requestedVariant = process.env.TOOLREEL_COVER_VARIANT?.trim();
+  const selectedVariant = requestedVariant === "poster" || (requestedVariant === "ai" && !aiAvailable)
+    ? "poster"
+    : aiAvailable
+      ? "ai"
+      : "poster";
+  await copyFile(selectedVariant === "ai" ? aiPath : posterPath, outputPath);
+  return coverData(script, outputPath, posterPath, aiPath, aiAvailable, aiPromptPath, selectedVariant);
 }
 
-function coverData(script: ScriptData, outputPath: string): CoverData {
+function coverData(
+  script: ScriptData,
+  outputPath: string,
+  posterPath: string,
+  aiPath: string,
+  aiAvailable: boolean,
+  aiPromptPath: string,
+  selectedVariant: CoverData["selectedVariant"],
+): CoverData {
   const selected = {
     title: coverTitle(script),
     subtitle: coverSubtitle(script),
     rationale: "自动选择短视频信息流封面方案。",
   };
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     selected,
     ideas: [
@@ -106,7 +147,58 @@ function coverData(script: ScriptData, outputPath: string): CoverData {
         rationale: "教程型封面，用于强调可操作性。",
       },
     ],
+    selectedVariant,
+    candidates: [
+      {
+        id: "poster",
+        label: "程序化信息海报",
+        outputPath: posterPath,
+        available: true,
+        source: "html",
+      },
+      {
+        id: "ai",
+        label: "AI 生图终版封面",
+        outputPath: aiPath,
+        available: aiAvailable,
+        source: "image_generation",
+      },
+    ],
+    aiPromptPath,
     outputPath,
+  };
+}
+
+async function normalizeAiCover(sourcePath: string, outputPath: string): Promise<void> {
+  await runFfmpeg([
+    "-i",
+    sourcePath,
+    "-vf",
+    `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT}:force_original_aspect_ratio=increase,crop=${VIDEO_WIDTH}:${VIDEO_HEIGHT}`,
+    "-frames:v",
+    "1",
+    outputPath,
+  ]);
+}
+
+function aiCoverPrompt(script: ScriptData): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    useCase: "ads-marketing",
+    assetType: "竖屏短视频平台终版封面",
+    size: `${VIDEO_WIDTH}x${VIDEO_HEIGHT}`,
+    title: coverTitle(script),
+    subtitle: coverSubtitle(script),
+    prompt: [
+      "创作一张适合抖音、小红书、视频号信息流的高点击率竖屏封面。",
+      `主题是 ${script.toolName}，内容类型是 ${coverChip(script)}。`,
+      `主标题必须准确写成：${coverTitle(script)}`,
+      `副标题必须准确写成：${coverSubtitle(script)}`,
+      "画面要有一个清晰的大视觉中心，像成熟科技自媒体的编辑设计，不要像 SaaS 官网、PPT 或普通宣传海报。",
+      "主标题占据第一视觉层级，三秒内可读；文字周围保留安全区，不能溢出、遮挡或贴边。",
+      "使用高对比但不过度花哨的颜色，允许产品概念化视觉，不强制使用真实截图。",
+      "不要网址、二维码、价格、账号水印、平台 Logo、无关品牌 Logo、内部模板名称或省略号。",
+    ].join("\n"),
   };
 }
 
@@ -433,7 +525,7 @@ function coverInsights(script: ScriptData): string[] {
   if (script.videoType === "top_list") {
     return ["先看筛选标准", "再看真实场景"];
   }
-  if (script.videoType === "update_news") {
+  if (isNewsVideo(script)) {
     return ["看更新重点", "看影响场景"];
   }
   if (script.videoType === "website_demo") {
@@ -452,8 +544,8 @@ function coverChip(script: ScriptData): string {
   if (script.videoType === "top_list") {
     return "工具清单";
   }
-  if (script.videoType === "update_news") {
-    return "更新速看";
+  if (isNewsVideo(script)) {
+    return "AI资讯速报";
   }
   return "AI工具科普";
 }
@@ -469,8 +561,8 @@ function coverTitle(script: ScriptData): string {
   if (script.videoType === "website_demo") {
     return cleanCoverText(`${script.toolName} 官网速看`, 18);
   }
-  if (script.videoType === "update_news") {
-    return cleanCoverText(`${script.toolName} 更新速看`, 18);
+  if (isNewsVideo(script)) {
+    return cleanCoverText(script.creative?.coverTitle ?? `${script.toolName} 发布了什么`, 18);
   }
   if (script.videoType === "top_list") {
     return cleanCoverText(`${script.toolName} 怎么选`, 18);
@@ -488,8 +580,8 @@ function coverSubtitle(script: ScriptData): string {
   if (script.videoType === "website_demo") {
     return "一分钟抓住核心功能";
   }
-  if (script.videoType === "update_news") {
-    return "看变化，也看影响场景";
+  if (isNewsVideo(script)) {
+    return cleanCoverText(script.creative?.coverSubtitle ?? "三点讲清核心变化", 18);
   }
   if (script.videoType === "top_list") {
     return "别收藏一堆名字";
@@ -507,8 +599,8 @@ function coverVerdict(script: ScriptData): string {
   if (script.videoType === "website_demo") {
     return "核心功能在哪";
   }
-  if (script.videoType === "update_news") {
-    return "要不要跟进";
+  if (isNewsVideo(script)) {
+    return "谁需要关注";
   }
   if (script.videoType === "top_list") {
     return "别收藏一堆名字";
@@ -518,6 +610,10 @@ function coverVerdict(script: ScriptData): string {
 
 function cleanCoverText(text: string, _maxChars = 24): string {
   return text.replace(/[.…]+$/g, "").replace(/\s+/g, " ").trim();
+}
+
+function isNewsVideo(script: ScriptData): boolean {
+  return script.videoType === "news" || script.videoType === "update_news";
 }
 
 function coverVisualWord(toolName: string): string {

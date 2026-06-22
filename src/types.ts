@@ -4,6 +4,7 @@ export type VideoType =
   | "tutorial"
   | "comparison"
   | "website_demo"
+  | "news"
   | "update_news";
 
 export type ToolInput = {
@@ -153,11 +154,22 @@ export type CoverIdea = {
 };
 
 export type CoverData = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   generatedAt: string;
   selected: CoverIdea;
   ideas: CoverIdea[];
+  selectedVariant: "poster" | "ai";
+  candidates: CoverCandidate[];
+  aiPromptPath: string;
   outputPath: string;
+};
+
+export type CoverCandidate = {
+  id: "poster" | "ai";
+  label: string;
+  outputPath: string;
+  available: boolean;
+  source: "html" | "image_generation";
 };
 
 export type CreativeBrief = {

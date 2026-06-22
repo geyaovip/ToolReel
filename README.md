@@ -9,6 +9,25 @@ pnpm install
 pnpm generate --name="Cursor" --url="https://cursor.com" --type="product_pick"
 ```
 
+查看当前支持的视频类型：
+
+```bash
+pnpm generate --list-types
+```
+
+新闻资讯示例：
+
+```bash
+pnpm generate --name="OpenAI 新模型" --url="https://openai.com/news/" --type="news"
+```
+
+封面会保留程序化海报和 AI 生图两个候选。Codex 按输出目录中的 `cover-ai-prompt.json` 生成 `cover-ai-source.png` 后执行：
+
+```bash
+pnpm cover:build outputs/YYYY-MM-DD-tool
+pnpm cover:select outputs/YYYY-MM-DD-tool ai
+```
+
 ## TTS
 
 The pipeline uses real TTS audio for final videos. The current provider is MiniMax;
